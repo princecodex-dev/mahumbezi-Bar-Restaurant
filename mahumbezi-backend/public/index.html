@@ -4,6 +4,29 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Mahumbezi Bar & Restaurant — Dashboard</title>
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.webmanifest" />
+
+<!-- PWA Meta Tags -->
+<meta name="theme-color" content="#e0ac3a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Mahumbezi" />
+<meta name="msapplication-TileColor" content="#e0ac3a" />
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png" />
+
+<!-- Apple Touch Icons -->
+<link rel="apple-touch-icon" href="/assets/icons/icon-192x192.png" />
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/icon-192x192.png" />
+<link rel="apple-touch-icon" sizes="167x167" href="/assets/icons/icon-192x192.png" />
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/icon-32x32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/icon-16x16.png" />
+<link rel="mask-icon" href="/assets/icons/icon-512x512.png" color="#e0ac3a" />
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -465,7 +488,7 @@
     .fm-grid { grid-template-columns: repeat(2, 1fr); }
     .tables-page-grid { grid-template-columns: repeat(3, 1fr); }
   }
-  @media (max-width: 720px) {
+@media (max-width: 720px) {
     .sidebar { display: none; }
     .kpi-grid { grid-template-columns: 1fr; }
     .table-grid { grid-template-columns: repeat(2, 1fr); }
@@ -473,6 +496,179 @@
     .menu-grid { grid-template-columns: 1fr 1fr; }
     .fm-grid { grid-template-columns: 1fr; }
     .tables-page-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ===== PWA Install Button ===== */
+  .pwa-install-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+    color: #1a1400;
+    font-weight: 700;
+    font-size: 13.5px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 8px 32px rgba(224, 172, 58, 0.35), 0 2px 8px rgba(0,0,0,0.3);
+    animation: pwa-slide-up 0.4s ease-out;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .pwa-install-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(224, 172, 58, 0.45), 0 4px 12px rgba(0,0,0,0.35);
+  }
+  .pwa-install-btn:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+  }
+  .pwa-install-btn.hidden {
+    display: none !important;
+  }
+  .pwa-install-icon {
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pwa-install-text {
+    white-space: nowrap;
+  }
+  @keyframes pwa-slide-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* iOS Add to Home Screen Instruction Modal */
+  .pwa-ios-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 40px;
+    pointer-events: none;
+  }
+  .pwa-ios-modal.hidden {
+    display: none !important;
+  }
+  .pwa-ios-modal-content {
+    pointer-events: auto;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    padding: 24px;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.4);
+    animation: pwa-slide-up 0.4s ease-out;
+  }
+  .pwa-ios-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .pwa-ios-modal-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+  }
+  .pwa-ios-modal-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .pwa-ios-modal-subtitle {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .pwa-ios-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .pwa-ios-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  .pwa-ios-step-number {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+    color: #1a1400;
+    font-weight: 700;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .pwa-ios-step-text strong {
+    color: var(--text);
+  }
+  .pwa-ios-close {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+    color: #1a1400;
+    font-weight: 700;
+    font-size: 13.5px;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+  }
+  .pwa-ios-close:hover {
+    transform: translateY(-1px);
+  }
+  .pwa-ios-close:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+  @media (max-width: 480px) {
+    .pwa-install-btn {
+      bottom: 16px;
+      right: 16px;
+      left: 16px;
+      justify-content: center;
+      padding: 14px 20px;
+    }
+    .pwa-ios-modal {
+      padding-bottom: 0;
+      align-items: stretch;
+    }
+    .pwa-ios-modal-content {
+      border-radius: 16px 16px 0 0;
+      min-height: 100%;
+      max-width: none;
+    }
+  }
+  /* Hide install button when running as standalone PWA */
+  @media (display-mode: standalone) {
+    .pwa-install-btn { display: none !important; }
+  }
+  /* Hide on iOS when in standalone mode */
+  @media (display-mode: standalone) {
+    .pwa-ios-modal { display: none !important; }
   }
 </style>
 </head>
@@ -2819,6 +3015,12 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
+  // PWA Install states
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+  const [showIOSModal, setShowIOSModal] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
+
   const [orders, setOrders] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [tables, setTables] = useState([]);
@@ -2901,6 +3103,98 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // PWA: Service Worker Registration
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      const swUrl = '/service-worker.js';
+      navigator.serviceWorker.register(swUrl)
+        .then((registration) => {
+          console.log('[PWA] Service Worker registered:', registration.scope);
+          // Check for updates periodically
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('[PWA] New version available');
+                  // Could show a "refresh for update" toast here
+                }
+              });
+            }
+          });
+        })
+        .catch((err) => {
+          console.warn('[PWA] Service Worker registration failed:', err);
+        });
+    }
+  }, []);
+
+  // PWA: Handle beforeinstallprompt (Android/Chrome/Edge)
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      // Check if already installed
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      const isIOSStandalone = window.navigator.standalone === true;
+      if (!isStandalone && !isIOSStandalone) {
+        setShowInstallBtn(true);
+      }
+    };
+
+    const handleAppInstalled = () => {
+      setShowInstallBtn(false);
+      setDeferredPrompt(null);
+      setIsInstalled(true);
+      console.log('[PWA] App installed');
+    };
+
+    // Check if already running as PWA
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    const isIOSStandalone = window.navigator.standalone === true;
+    if (isStandalone || isIOSStandalone) {
+      setIsInstalled(true);
+    }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    // iOS: Detect if we should show "Add to Home Screen" instruction
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isInStandaloneMode = isStandalone || isIOSStandalone;
+    const hasSeenIOSPrompt = localStorage.getItem('pwa-ios-prompt-dismissed');
+    
+    if (isIOS && !isInStandaloneMode && !hasSeenIOSPrompt) {
+      // Show after a short delay so user sees the app first
+      const timer = setTimeout(() => setShowIOSModal(true), 3000);
+      return () => clearTimeout(timer);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      console.log('[PWA] User accepted install');
+      setShowInstallBtn(false);
+      setIsInstalled(true);
+    } else {
+      console.log('[PWA] User dismissed install');
+    }
+    setDeferredPrompt(null);
+  };
+
+  const dismissIOSModal = () => {
+    setShowIOSModal(false);
+    localStorage.setItem('pwa-ios-prompt-dismissed', 'true');
+  };
+
   if (!token) {
     return <LoginScreen onLoggedIn={handleLoggedIn} />;
   }
@@ -2943,6 +3237,50 @@ function App() {
         </main>
       </div>
     </div>
+
+    {/* PWA Install Button (Android/Chrome/Edge) */}
+    {showInstallBtn && !isInstalled && (
+      <button
+        className="pwa-install-btn"
+        onClick={handleInstallClick}
+        aria-label="Install Mahumbezi app"
+      >
+        <span className="pwa-install-icon">📱</span>
+        <span className="pwa-install-text">Install App</span>
+      </button>
+    )}
+
+    {/* iOS Add to Home Screen Modal */}
+    {showIOSModal && (
+      <div className="pwa-ios-modal" onClick={dismissIOSModal}>
+        <div className="pwa-ios-modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="pwa-ios-modal-header">
+            <div className="pwa-ios-modal-icon">📱</div>
+            <div>
+              <div className="pwa-ios-modal-title">Install Mahumbezi</div>
+              <div className="pwa-ios-modal-subtitle">Add to Home Screen for quick access</div>
+            </div>
+          </div>
+          <div className="pwa-ios-steps">
+            <div className="pwa-ios-step">
+              <span className="pwa-ios-step-number">1</span>
+              <span className="pwa-ios-step-text">Tap the <strong>Share</strong> button <span style={{fontSize:'16px'}}>⬆️</span> at the bottom of Safari</span>
+            </div>
+            <div className="pwa-ios-step">
+              <span className="pwa-ios-step-number">2</span>
+              <span className="pwa-ios-step-text">Scroll down and tap <strong>"Add to Home Screen"</strong></span>
+            </div>
+            <div className="pwa-ios-step">
+              <span className="pwa-ios-step-number">3</span>
+              <span className="pwa-ios-step-text">Tap <strong>"Add"</strong> in the top right corner</span>
+            </div>
+          </div>
+          <button className="pwa-ios-close" onClick={dismissIOSModal}>
+            Got it, thanks!
+          </button>
+        </div>
+      </div>
+    )}
   );
 }
 
