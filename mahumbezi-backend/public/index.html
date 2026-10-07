@@ -3040,6 +3040,16 @@ function App() {
   // Keep the module-level auth token (used by every api.* call) in sync with React state
   useEffect(() => { authToken = token; }, [token]);
 
+  const handleLogout = React.useCallback(() => {
+    if (authRefresh) {
+      api.logout(authRefresh).catch(() => {}); // best-effort — clear local state regardless
+    }
+    forceLogout();
+    setToken(null);
+    setCurrentUser(null);
+    setPage("Dashboard");
+  }, []);
+
   const loadAll = React.useCallback(() => {
     if (!token) return Promise.resolve();
     return Promise.all([
@@ -3059,15 +3069,24 @@ function App() {
       setVatRate(s.vatRate);
       setSummary(rep);
       setLoadError("");
+    }).catch((err) => {
+      if (err.message && (err.message.includes("401") || err.message.includes("Unauthorized"))) {
+        handleLogout();
+      }
+      throw err;
     });
-  }, [token]);
+  }, [token, handleLogout]);
 
   useEffect(() => {
     if (!token) { setLoading(false); return; }
     let cancelled = false;
     setLoading(true);
     loadAll()
-      .catch((err) => { if (!cancelled) setLoadError(err.message || "Failed to load data from the server."); })
+      .catch((err) => { 
+        if (!cancelled && err.message && !err.message.includes("401") && !err.message.includes("Unauthorized")) {
+          setLoadError(err.message || "Failed to load data from the server."); 
+        }
+      })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [token, loadAll]);
@@ -3079,15 +3098,6 @@ function App() {
     authRefresh = refresh || null;
     setToken(tok);
     setCurrentUser(user);
-  }
-  function handleLogout() {
-    if (authRefresh) {
-      api.logout(authRefresh).catch(() => {}); // best-effort — clear local state regardless
-    }
-    forceLogout();
-    setToken(null);
-    setCurrentUser(null);
-    setPage("Dashboard");
   }
 
   // React to auto-refresh (role/user updates) and forced logout (expired refresh token)
@@ -3206,81 +3216,83 @@ function App() {
   const KNOWN_PAGES = ["Dashboard", "Orders / POS", "Food & Menu", "Tables", "Inventory / Stock", "Customers", "Suppliers", "Sales & Payments", "Reports", "Employees / Users", "Settings"];
 
   return (
-    <div className="layout">
-      <Sidebar page={page} onNavigate={setPage} />
-      <div className="main">
-        <Topbar user={currentUser} onLogout={handleLogout} data={{ menuItems, tables, orders, inventory, customers, suppliers, employees }} onNavigate={setPage} />
-        <main className="content">
-          {loadError && (
-            <div className="toast" style={{ background: "var(--red-bg)", color: "var(--red)", maxWidth: "480px", marginBottom: "16px" }}>
-              Couldn't reach the server: {loadError}
-            </div>
-          )}
-          {page === "Dashboard" && <Dashboard orders={orders} tables={tables} inventory={inventory} summary={summary} onNavigate={setPage} user={currentUser} />}
-          {page === "Orders / POS" && <OrdersPOS orders={orders} menuItems={menuItems} tables={tables} vatRate={vatRate} reload={loadAll} />}
-          {page === "Food & Menu" && <FoodMenu menuItems={menuItems} reload={loadAll} />}
-          {page === "Tables" && <TablesPage tables={tables} orders={orders} reload={loadAll} />}
-          {page === "Inventory / Stock" && <InventoryPage inventory={inventory} reload={loadAll} />}
-          {page === "Customers" && <CustomersPage customers={customers} reload={loadAll} />}
-          {page === "Suppliers" && <SuppliersPage suppliers={suppliers} reload={loadAll} />}
-          {page === "Sales & Payments" && <SalesPayments orders={orders} reload={loadAll} />}
-          {page === "Reports" && <ReportsPage orders={orders} inventory={inventory} tables={tables} summary={summary} onNavigate={setPage} />}
-          {page === "Employees / Users" && <EmployeesPage employees={employees} reload={loadAll} currentUser={currentUser} />}
-          {page === "Settings" && <SettingsPage settings={settings} vatRate={vatRate} reload={loadAll} currentUser={currentUser} />}
-          {!KNOWN_PAGES.includes(page) && (
-            <div className="panel" style={{ textAlign: "center", padding: "60px 20px", color: "var(--text-dim)" }}>
-              <div style={{ fontSize: "28px", marginBottom: "10px" }}>🚧</div>
-              <div style={{ fontWeight: 700, marginBottom: "4px" }}>{page}</div>
-              <div style={{ fontSize: "12.5px" }}>This page hasn't been built yet — ask to build it next.</div>
-            </div>
-          )}
-        </main>
-      </div>
-    </div>
-
-    {/* PWA Install Button (Android/Chrome/Edge) */}
-    {showInstallBtn && !isInstalled && (
-      <button
-        className="pwa-install-btn"
-        onClick={handleInstallClick}
-        aria-label="Install Mahumbezi app"
-      >
-        <span className="pwa-install-icon">📱</span>
-        <span className="pwa-install-text">Install App</span>
-      </button>
-    )}
-
-    {/* iOS Add to Home Screen Modal */}
-    {showIOSModal && (
-      <div className="pwa-ios-modal" onClick={dismissIOSModal}>
-        <div className="pwa-ios-modal-content" onClick={(e) => e.stopPropagation()}>
-          <div className="pwa-ios-modal-header">
-            <div className="pwa-ios-modal-icon">📱</div>
-            <div>
-              <div className="pwa-ios-modal-title">Install Mahumbezi</div>
-              <div className="pwa-ios-modal-subtitle">Add to Home Screen for quick access</div>
-            </div>
-          </div>
-          <div className="pwa-ios-steps">
-            <div className="pwa-ios-step">
-              <span className="pwa-ios-step-number">1</span>
-              <span className="pwa-ios-step-text">Tap the <strong>Share</strong> button <span style={{fontSize:'16px'}}>⬆️</span> at the bottom of Safari</span>
-            </div>
-            <div className="pwa-ios-step">
-              <span className="pwa-ios-step-number">2</span>
-              <span className="pwa-ios-step-text">Scroll down and tap <strong>"Add to Home Screen"</strong></span>
-            </div>
-            <div className="pwa-ios-step">
-              <span className="pwa-ios-step-number">3</span>
-              <span className="pwa-ios-step-text">Tap <strong>"Add"</strong> in the top right corner</span>
-            </div>
-          </div>
-          <button className="pwa-ios-close" onClick={dismissIOSModal}>
-            Got it, thanks!
-          </button>
+    <>
+      <div className="layout">
+        <Sidebar page={page} onNavigate={setPage} />
+        <div className="main">
+          <Topbar user={currentUser} onLogout={handleLogout} data={{ menuItems, tables, orders, inventory, customers, suppliers, employees }} onNavigate={setPage} />
+          <main className="content">
+            {loadError && (
+              <div className="toast" style={{ background: "var(--red-bg)", color: "var(--red)", maxWidth: "480px", marginBottom: "16px" }}>
+                Couldn't reach the server: {loadError}
+              </div>
+            )}
+            {page === "Dashboard" && <Dashboard orders={orders} tables={tables} inventory={inventory} summary={summary} onNavigate={setPage} user={currentUser} />}
+            {page === "Orders / POS" && <OrdersPOS orders={orders} menuItems={menuItems} tables={tables} vatRate={vatRate} reload={loadAll} />}
+            {page === "Food & Menu" && <FoodMenu menuItems={menuItems} reload={loadAll} />}
+            {page === "Tables" && <TablesPage tables={tables} orders={orders} reload={loadAll} />}
+            {page === "Inventory / Stock" && <InventoryPage inventory={inventory} reload={loadAll} />}
+            {page === "Customers" && <CustomersPage customers={customers} reload={loadAll} />}
+            {page === "Suppliers" && <SuppliersPage suppliers={suppliers} reload={loadAll} />}
+            {page === "Sales & Payments" && <SalesPayments orders={orders} reload={loadAll} />}
+            {page === "Reports" && <ReportsPage orders={orders} inventory={inventory} tables={tables} summary={summary} onNavigate={setPage} />}
+            {page === "Employees / Users" && <EmployeesPage employees={employees} reload={loadAll} currentUser={currentUser} />}
+            {page === "Settings" && <SettingsPage settings={settings} vatRate={vatRate} reload={loadAll} currentUser={currentUser} />}
+            {!KNOWN_PAGES.includes(page) && (
+              <div className="panel" style={{ textAlign: "center", padding: "60px 20px", color: "var(--text-dim)" }}>
+                <div style={{ fontSize: "28px", marginBottom: "10px" }}>🚧</div>
+                <div style={{ fontWeight: 700, marginBottom: "4px" }}>{page}</div>
+                <div style={{ fontSize: "12.5px" }}>This page hasn't been built yet — ask to build it next.</div>
+              </div>
+            )}
+          </main>
         </div>
       </div>
-    )}
+
+      {/* PWA Install Button (Android/Chrome/Edge) */}
+      {showInstallBtn && !isInstalled && (
+        <button
+          className="pwa-install-btn"
+          onClick={handleInstallClick}
+          aria-label="Install Mahumbezi app"
+        >
+          <span className="pwa-install-icon">📱</span>
+          <span className="pwa-install-text">Install App</span>
+        </button>
+      )}
+
+      {/* iOS Add to Home Screen Modal */}
+      {showIOSModal && (
+        <div className="pwa-ios-modal" onClick={dismissIOSModal}>
+          <div className="pwa-ios-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="pwa-ios-modal-header">
+              <div className="pwa-ios-modal-icon">📱</div>
+              <div>
+                <div className="pwa-ios-modal-title">Install Mahumbezi</div>
+                <div className="pwa-ios-modal-subtitle">Add to Home Screen for quick access</div>
+              </div>
+            </div>
+            <div className="pwa-ios-steps">
+              <div className="pwa-ios-step">
+                <span className="pwa-ios-step-number">1</span>
+                <span className="pwa-ios-step-text">Tap the <strong>Share</strong> button <span style={{fontSize:'16px'}}>⬆️</span> at the bottom of Safari</span>
+              </div>
+              <div className="pwa-ios-step">
+                <span className="pwa-ios-step-number">2</span>
+                <span className="pwa-ios-step-text">Scroll down and tap <strong>"Add to Home Screen"</strong></span>
+              </div>
+              <div className="pwa-ios-step">
+                <span className="pwa-ios-step-number">3</span>
+                <span className="pwa-ios-step-text">Tap <strong>"Add"</strong> in the top right corner</span>
+              </div>
+            </div>
+            <button className="pwa-ios-close" onClick={dismissIOSModal}>
+              Got it, thanks!
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

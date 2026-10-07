@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: mahumbezi-backend
+    runtime: node
+    plan: starter
+    rootDir: mahumbezi-backend
+    buildCommand: npm ci --omit=dev --ignore-scripts
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: TRUST_PROXY
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        sync: false
+      - key: DATABASE_PATH
+        value: /data/mahumbezi.db
+      - key: SEED_ADMIN_EMAIL
+        sync: false
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+    disk:
+      name: mahumbezi-data
+      mountPath: /data
+      sizeGB: 1
