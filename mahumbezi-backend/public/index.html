@@ -1,0 +1,2952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mahumbezi Bar & Restaurant — Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  :root {
+    --bg: #0c0e12;
+    --panel: #14171d;
+    --panel-2: #1a1e26;
+    --border: #262b34;
+    --text: #eef0f3;
+    --text-dim: #b8bcc8;
+    --text-faint: #a1abb9;
+    --gold: #e0ac3a;
+    --gold-dim: #ad8635;
+    --green: #2ecc71;
+    --green-bg: #12291f;
+    --blue: #4a9eff;
+    --blue-bg: #10233a;
+    --orange: #cf7a2b;
+    --orange-bg: #2c2013;
+    --purple: #7c5bd6;
+    --purple-bg: #211a34;
+    --red: #ff6b6b;
+    --red-bg: #331919;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  #root { min-height: 100vh; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #2a2f38; border-radius: 4px; }
+  a, button, select, input { font-family: inherit; }
+
+  /* Focus visible — keyboard navigation */
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  a:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+
+  .layout { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 236px;
+    flex-shrink: 0;
+    background: #0a0c10;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand-mark {
+    width: 38px; height: 38px;
+    border-radius: 8px;
+    background: linear-gradient(160deg, var(--gold), var(--gold-dim));
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; color: #1a1400; font-size: 18px;
+  }
+  .brand-logo {
+    height: 38px; width: auto;
+    border-radius: 8px;
+  }
+  .brand-name { font-size: 14.5px; font-weight: 700; letter-spacing: 0.3px; color: var(--gold); line-height: 1.15; }
+  .brand-sub { font-size: 9.5px; color: var(--text-faint); letter-spacing: 1.5px; }
+
+  .nav { padding: 14px 10px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px; margin-bottom: 2px;
+    border-radius: 8px; font-size: 13.5px; color: var(--text-dim);
+    cursor: pointer; transition: background 0.15s ease, color 0.15s ease;
+    background: transparent; border: none; width: 100%; text-align: left;
+  }
+  .nav-item:hover { background: #16191f; color: var(--text); }
+  .nav-item.active { background: linear-gradient(90deg, rgba(224,172,58,0.16), rgba(224,172,58,0.04)); color: var(--gold); font-weight: 600; box-shadow: inset 2px 0 0 var(--gold); }
+  .nav-icon { width: 18px; text-align: center; font-size: 14px; }
+
+  .promo {
+    margin: 12px; padding: 18px 16px;
+    border-radius: 10px;
+    background: linear-gradient(160deg, #221a10 0%, #0a0805 100%);
+    border: 1px solid #2c2314;
+    font-family: Georgia, "Times New Roman", serif;
+    color: var(--gold);
+    font-style: italic;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .promo strong { display: block; font-style: normal; color: var(--text-faint); font-size: 9px; letter-spacing: 2px; margin-top: 8px; font-family: inherit; }
+
+  /* Main */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+  .topbar {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: #0e1015;
+  }
+  .search {
+    flex: 1; max-width: 460px;
+    display: flex; align-items: center; gap: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 9px; padding: 9px 14px; color: var(--text-faint); font-size: 13px;
+  }
+  .search input { background: transparent; border: none; color: var(--text); font-size: 13px; flex: 1; }
+  .search input::placeholder { color: var(--text-faint); }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 18px; }
+  .bell { position: relative; font-size: 17px; color: var(--text-dim); cursor: pointer; }
+  .bell-badge {
+    position: absolute; top: -6px; right: -8px;
+    background: var(--red); color: white; font-size: 9.5px; font-weight: 700;
+    width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  }
+  .profile { display: flex; align-items: center; gap: 9px; cursor: pointer; }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(160deg,#3a3f4a,#1c1f26); display:flex; align-items:center; justify-content:center; font-size: 15px; }
+  .profile-name { font-size: 13px; font-weight: 600; }
+  .profile-status { font-size: 10.5px; color: var(--green); display: flex; align-items: center; gap: 4px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+
+  .content { padding: 22px 24px 40px; overflow-y: auto; }
+
+  /* Hero */
+  .hero {
+    position: relative; border-radius: 14px; overflow: hidden;
+    min-height: 128px; margin-bottom: 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 22px 28px;
+    background: linear-gradient(100deg, #151008 0%, #241a0c 45%, #2a1c0d 100%);
+    border: 1px solid #2b2010;
+  }
+  .hero-glow { position: absolute; inset: 0; background: radial-gradient(circle at 78% 30%, rgba(224,172,58,0.14), transparent 60%); pointer-events: none; }
+  .hero-left h1 { margin: 0 0 4px; font-size: 22px; font-weight: 700; }
+  .hero-left p { margin: 0; color: var(--text-dim); font-size: 13px; }
+  .hero-date { display: flex; align-items: center; gap: 8px; color: var(--text-dim); font-size: 12.5px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); padding: 8px 14px; border-radius: 9px; white-space: nowrap; }
+  .hero-date .t { display:block; color: var(--text); font-weight: 600; font-size: 13px; }
+
+  /* Page header (non-dashboard pages) */
+  .page-head { display: flex; align-items: center; margin-bottom: 18px; gap: 14px; }
+  .page-head h1 { font-size: 20px; margin: 0; }
+  .page-head p { margin: 2px 0 0; font-size: 12.5px; color: var(--text-dim); }
+
+  /* KPI cards */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+  .kpi-card { border-radius: 12px; padding: 18px 18px 16px; border: 1px solid var(--border); }
+  .kpi-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 12px; }
+  .kpi-label { font-size: 12.5px; color: var(--text-dim); margin-bottom: 6px; }
+  .kpi-value { font-size: 21px; font-weight: 700; margin-bottom: 6px; }
+  .kpi-change { font-size: 12px; font-weight: 600; }
+  .kpi-1 { background: linear-gradient(155deg, #10281d, #0c1a16); }
+  .kpi-1 .kpi-icon { background: rgba(31,157,99,0.18); color: var(--green); }
+  .kpi-1 .kpi-change { color: var(--green); }
+  .kpi-2 { background: linear-gradient(155deg, #0e2036, #0c1622); }
+  .kpi-2 .kpi-icon { background: rgba(47,127,214,0.18); color: var(--blue); }
+  .kpi-2 .kpi-change { color: var(--blue); }
+  .kpi-3 { background: linear-gradient(155deg, #2c220f, #1a140b); }
+  .kpi-3 .kpi-icon { background: rgba(207,122,43,0.2); color: var(--orange); }
+  .kpi-3 .kpi-change { color: var(--orange); }
+  .kpi-4 { background: linear-gradient(155deg, #221a34, #16121f); }
+  .kpi-4 .kpi-icon { background: rgba(124,91,214,0.2); color: var(--purple); }
+  .kpi-4 .kpi-link { font-size: 12px; color: var(--purple); font-weight: 600; cursor: pointer; }
+
+  /* Panels */
+  .row { display: grid; gap: 18px; margin-bottom: 18px; }
+  .row-2 { grid-template-columns: 1.55fr 1fr; }
+  .row-3 { grid-template-columns: 1.35fr 1fr 0.85fr; align-items: start; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px 18px 8px; }
+  .panel-head { display: flex; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .panel-title { font-size: 14.5px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .panel-link { margin-left: auto; font-size: 12px; color: var(--gold); cursor: pointer; font-weight: 600; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.8px; }
+  th { text-align: left; color: var(--text-faint); font-weight: 600; font-size: 11px; padding: 0 10px 10px 0; letter-spacing: 0.3px; }
+  td { padding: 10px 10px 10px 0; border-top: 1px solid var(--border); vertical-align: middle; }
+  tr:first-child td { border-top: none; }
+  .id-cell { color: var(--text-dim); }
+  .pill { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; cursor: pointer; border: none; }
+  .pill-preparing { background: var(--orange-bg); color: var(--orange); }
+  .pill-served { background: var(--green-bg); color: var(--green); }
+  .pill-paid { background: var(--blue-bg); color: var(--blue); }
+  .pill-outofstock { background: var(--red-bg); color: var(--red); }
+  .pill-vip { background: rgba(224,172,58,0.16); color: var(--gold); }
+  .food-thumb { width: 30px; height: 30px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; background: #22262e; }
+  .cat-pill { display: inline-block; padding: 3px 9px; border-radius: 6px; font-size: 10.5px; font-weight: 700; }
+  .cat-food { background: var(--orange-bg); color: var(--orange); }
+  .cat-drinks { background: var(--blue-bg); color: var(--blue); }
+  .trend-up { color: var(--green); font-size: 11px; }
+
+  /* Table overview */
+  .table-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .tbl-card { border-radius: 10px; padding: 14px 8px; text-align: center; border: 1px solid var(--border); background: var(--panel-2); }
+  .tbl-icon { font-size: 20px; margin-bottom: 6px; }
+  .tbl-name { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .tbl-status { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px; display: inline-block; }
+  .s-available .tbl-icon { color: var(--green); } .s-available .tbl-status { background: var(--green-bg); color: var(--green); }
+  .s-occupied .tbl-icon { color: var(--red); } .s-occupied .tbl-status { background: var(--red-bg); color: var(--red); }
+  .s-ordering .tbl-icon { color: var(--gold); } .s-ordering .tbl-status { background: rgba(224,172,58,0.14); color: var(--gold); }
+  .s-closed .tbl-icon { color: var(--text-faint); } .s-closed .tbl-status { background: #22262e; color: var(--text-faint); }
+
+  /* Chart */
+  .chart-wrap { display: flex; align-items: flex-end; gap: 18px; height: 200px; padding: 10px 4px 0; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; gap: 8px; }
+  .bar { width: 60%; border-radius: 5px 5px 3px 3px; background: linear-gradient(180deg, var(--gold), var(--gold-dim)); transition: height 0.5s ease; }
+  .bar-day { font-size: 11px; color: var(--text-faint); }
+  .chart-select { background: var(--panel-2); border: 1px solid var(--border); color: var(--text-dim); font-size: 11.5px; padding: 6px 10px; border-radius: 7px; }
+  .y-axis { display: flex; flex-direction: column-reverse; justify-content: space-between; font-size: 10px; color: var(--text-faint); height: 200px; padding: 10px 0 0; margin-right: 6px; }
+
+  /* Quick actions */
+  .qa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .qa-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 16px 8px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--panel-2); color: var(--text); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: border-color 0.15s ease, transform 0.1s ease;
+  }
+  .qa-btn:hover { border-color: var(--gold-dim); transform: translateY(-1px); }
+  .qa-btn .qa-icon { font-size: 18px; }
+
+  .footer { text-align: center; color: var(--text-faint); font-size: 11.5px; padding: 6px 0 0; }
+  .footer span { margin: 0 8px; }
+
+  /* --- Orders / POS page --- */
+  .pos-layout { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; align-items: start; }
+  .cat-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .cat-tab {
+    padding: 8px 16px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--text-dim); cursor: pointer;
+  }
+  .cat-tab.active { background: linear-gradient(135deg, var(--gold), var(--gold-dim)); color: #1a1400; border-color: transparent; }
+  .menu-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .menu-card {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px; cursor: pointer; transition: border-color .15s ease, transform .1s ease;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .menu-card:hover { border-color: var(--gold-dim); transform: translateY(-2px); }
+  .menu-card .m-icon { width: 42px; height: 42px; border-radius: 10px; background: #22262e; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .menu-card .m-name { font-size: 13px; font-weight: 700; }
+  .menu-card .m-foot { display: flex; align-items: center; justify-content: space-between; margin-top: auto; }
+  .menu-card .m-price { font-size: 12.5px; color: var(--gold); font-weight: 700; }
+  .menu-card .m-add { width: 26px; height: 26px; border-radius: 7px; background: rgba(224,172,58,0.14); color: var(--gold); border: none; font-size: 15px; font-weight: 700; cursor: pointer; }
+
+  .order-panel { position: sticky; top: 14px; }
+  .field-label { font-size: 11px; color: var(--text-faint); font-weight: 700; letter-spacing: 0.3px; margin-bottom: 6px; display: block; }
+  .table-select {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+    padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 16px;
+  }
+  .cart-empty { text-align: center; color: var(--text-faint); font-size: 12.5px; padding: 30px 10px; }
+  .cart-list { display: flex; flex-direction: column; gap: 10px; max-height: 260px; overflow-y: auto; margin-bottom: 14px; }
+  .cart-row { display: flex; align-items: center; gap: 10px; }
+  .cart-row .c-name { flex: 1; font-size: 12.5px; }
+  .cart-row .c-price { font-size: 11.5px; color: var(--text-faint); }
+  .qty-ctrl { display: flex; align-items: center; gap: 6px; }
+  .qty-btn { width: 22px; height: 22px; border-radius: 6px; background: var(--panel-2); border: 1px solid var(--border); color: var(--text); cursor: pointer; font-size: 12px; line-height: 1; }
+  .qty-val { width: 16px; text-align: center; font-size: 12.5px; }
+  .cart-remove { color: var(--red); cursor: pointer; font-size: 13px; background: none; border: none; }
+  .totals-row { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-dim); padding: 5px 0; }
+  .totals-row.grand { color: var(--text); font-weight: 700; font-size: 14.5px; border-top: 1px solid var(--border); margin-top: 6px; padding-top: 10px; }
+  .place-order-btn {
+    width: 100%; margin-top: 14px; padding: 12px; border-radius: 9px; border: none;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dim)); color: #1a1400;
+    font-weight: 700; font-size: 13.5px; cursor: pointer;
+  }
+  .place-order-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .toast {
+    margin-top: 10px; padding: 9px 12px; border-radius: 8px; background: var(--green-bg);
+    color: var(--green); font-size: 12px; font-weight: 600; text-align: center;
+  }
+  .status-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .status-tab { padding: 6px 14px; border-radius: 999px; font-size: 11.5px; font-weight: 700; background: var(--panel-2); border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; }
+  .status-tab.active { background: rgba(224,172,58,0.16); color: var(--gold); border-color: var(--gold-dim); }
+
+  /* --- Food & Menu page --- */
+  .page-head { justify-content: space-between; }
+  .fm-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; padding-bottom: 4px; }
+  .fm-card {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px; display: flex; flex-direction: column; gap: 8px; position: relative;
+  }
+  .fm-top { display: flex; align-items: center; justify-content: space-between; }
+  .fm-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 2px; }
+  .fm-actions { display: flex; gap: 6px; }
+  .icon-btn { width: 26px; height: 26px; border-radius: 7px; background: #22262e; border: 1px solid var(--border); cursor: pointer; font-size: 12px; }
+  .icon-btn.danger:hover { border-color: var(--red); }
+  .avail-tag { font-size: 10px; font-weight: 700; color: var(--green); }
+  .avail-tag.off { color: var(--red); }
+
+  .toggle { width: 34px; height: 19px; border-radius: 999px; background: #2c313b; display: inline-block; position: relative; cursor: pointer; transition: background .15s ease; vertical-align: middle; }
+  .toggle.on { background: var(--green); }
+  .toggle-knob { position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%; background: white; transition: left .15s ease; }
+  .toggle.on .toggle-knob { left: 17px; }
+  .toggle-inline { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-dim); cursor: pointer; }
+
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(4,5,7,0.7); backdrop-filter: blur(2px);
+    display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px;
+  }
+  .modal-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+    padding: 22px; width: 100%; max-width: 380px; max-height: 90vh; overflow-y: auto;
+  }
+  .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .btn-secondary {
+    flex: 1; padding: 11px; border-radius: 9px; border: 1px solid var(--border);
+    background: var(--panel-2); color: var(--text-dim); font-weight: 600; font-size: 13px; cursor: pointer;
+  }
+  .modal-card .place-order-btn { flex: 1; }
+  .emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin-bottom: 14px; }
+  .emoji-choice { background: var(--panel-2); border: 1px solid var(--border); border-radius: 7px; padding: 6px 0; font-size: 15px; cursor: pointer; }
+  .emoji-choice.active { border-color: var(--gold); background: rgba(224,172,58,0.14); }
+
+  /* --- Tables page --- */
+  .tables-page-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; padding-bottom: 4px; }
+  .tp-card { position: relative; padding: 20px 10px 16px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .tp-remove {
+    position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; border-radius: 6px;
+    background: transparent; border: none; color: var(--text-faint); cursor: pointer; font-size: 11px;
+  }
+  .tp-remove:hover { color: var(--red); }
+  .tp-seats { font-size: 11px; color: var(--text-faint); margin-bottom: 4px; }
+  .tp-status-btn { border: none; cursor: pointer; font-family: inherit; }
+  .tp-order-tag { font-size: 10px; color: var(--text-dim); margin-top: 6px; background: #22262e; padding: 3px 8px; border-radius: 999px; }
+
+  /* --- Login screen --- */
+  .login-wrap {
+    min-height: 100vh; position: relative; display: flex; align-items: center;
+    padding: 40px; overflow: hidden;
+    background: #05070a;
+  }
+  .login-bg {
+    position: absolute; inset: 0; z-index: 0;
+    background-image: url('/assets/login-bg.jpg');
+    background-size: cover; background-position: center;
+  }
+  .login-bg::after {
+    content: ""; position: absolute; inset: 0;
+    background:
+      linear-gradient(100deg, rgba(5,7,10,0.88) 0%, rgba(5,7,10,0.72) 38%, rgba(5,7,10,0.55) 62%, rgba(5,7,10,0.35) 100%),
+      linear-gradient(0deg, rgba(5,7,10,0.5), rgba(5,7,10,0.2) 40%);
+  }
+  .login-grid {
+    position: relative; z-index: 1; width: 100%; max-width: 1280px; margin: 0 auto;
+    display: grid; grid-template-columns: 1.3fr 420px; gap: 40px; align-items: center;
+  }
+
+  .login-brandbar { display: flex; align-items: center; gap: 12px; margin-bottom: 44px; }
+  .login-brandbar img { height: 46px; width: auto; }
+  .login-brandbar .lb-name { font-size: 21px; font-weight: 800; letter-spacing: 0.5px; color: var(--gold); line-height: 1.15; }
+  .login-brandbar .lb-sub { font-size: 11px; color: var(--text-dim); letter-spacing: 2.5px; }
+
+  .login-eyebrow { display: flex; align-items: center; gap: 10px; color: var(--gold); font-size: 12px; font-weight: 700; letter-spacing: 2px; margin-bottom: 14px; }
+  .login-eyebrow .rule { width: 34px; height: 1px; background: linear-gradient(90deg, var(--gold), transparent); }
+  .login-heading { font-size: 40px; line-height: 1.2; font-weight: 700; color: #fff; margin: 0 0 16px; max-width: 560px; }
+  .login-heading .gold { color: var(--gold); display: block; }
+  .login-copy { font-size: 14.5px; color: #c9cdd4; max-width: 460px; line-height: 1.6; margin: 0 0 40px; }
+
+  .login-features { display: flex; gap: 34px; flex-wrap: wrap; margin-bottom: 40px; }
+  .login-feature { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .login-feature .lf-icon { font-size: 19px; color: var(--gold); }
+  .login-feature .lf-label { font-size: 12px; color: #d6d9de; line-height: 1.3; max-width: 90px; }
+
+  .login-tagline { display: flex; align-items: center; gap: 14px; color: var(--gold); font-family: Georgia, "Times New Roman", serif; font-style: italic; font-size: 13px; }
+  .login-tagline .rule { flex: 0 0 60px; height: 1px; background: linear-gradient(90deg, transparent, rgba(224,172,58,0.5)); }
+  .login-tagline .rule.right { background: linear-gradient(90deg, rgba(224,172,58,0.5), transparent); }
+
+  .login-card {
+    position: relative; z-index: 1;
+    background: rgba(15,18,24,0.86); backdrop-filter: blur(10px);
+    border: 1px solid rgba(224,172,58,0.35); border-radius: 18px;
+    padding: 36px 32px; box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+  }
+  .login-card-brand { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 22px; }
+  .login-card-brand img { height: 54px; width: auto; margin-bottom: 10px; }
+  .login-card-brand .lcb-name { font-size: 18px; font-weight: 800; letter-spacing: 0.5px; color: var(--gold); }
+  .login-card-brand .lcb-sub { font-size: 10px; color: var(--text-dim); letter-spacing: 2.5px; margin-top: 2px; }
+
+  .login-title { font-size: 18px; font-weight: 700; text-align: center; margin: 0 0 4px; color: #fff; }
+  .login-sub { font-size: 12.5px; color: var(--text-dim); text-align: center; margin: 0 0 24px; }
+  .login-error { background: var(--red-bg); color: var(--red); font-size: 12.5px; padding: 9px 12px; border-radius: 8px; margin-bottom: 14px; text-align: center; }
+  .login-note { background: rgba(224,172,58,0.1); color: var(--gold); font-size: 11.5px; padding: 9px 12px; border-radius: 8px; margin: -6px 0 14px; text-align: center; line-height: 1.5; }
+
+  .login-input-group { position: relative; margin-bottom: 16px; }
+  .login-input-group .li-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--text-faint); pointer-events: none; }
+  .login-input-group input {
+    width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text);
+    padding: 12px 14px 12px 38px; border-radius: 9px; font-size: 13.5px;
+    transition: border-color 0.15s ease;
+  }
+  .login-input-group input:focus { border-color: var(--gold-dim); }
+  .login-input-group input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .login-input-group .li-toggle {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 14px; padding: 12px;
+    min-width: 44px; min-height: 44px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  }
+  .login-input-group .li-toggle:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  .login-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; font-size: 12px; }
+  .login-remember { display: flex; align-items: center; gap: 8px; color: var(--text-dim); cursor: pointer; user-select: none; }
+  .login-remember input { accent-color: var(--gold); width: 20px; height: 20px; cursor: pointer; min-width: 44px; min-height: 44px; }
+  .login-forgot { color: var(--gold); font-weight: 600; cursor: pointer; background: none; border: none; font-size: 12px; text-decoration: underline; padding: 12px 8px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; }
+  .login-forgot:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 4px; }
+
+  .login-submit {
+    width: 100%; padding: 13px; border-radius: 9px; border: none; margin-top: 0;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dim)); color: #1a1400;
+    font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .login-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .login-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--text-faint); font-size: 10.5px; letter-spacing: 1px; }
+  .login-divider .rule { flex: 1; height: 1px; background: var(--border); }
+
+  .login-social {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 11px; border-radius: 9px; border: 1px solid var(--border); background: rgba(255,255,255,0.02);
+    color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; margin-bottom: 10px;
+  }
+  .login-social:hover { border-color: var(--gold-dim); }
+
+  .login-footer { text-align: center; font-size: 12px; color: var(--text-dim); margin-top: 18px; }
+  .login-footer button { background: none; border: none; color: var(--gold); font-weight: 600; cursor: pointer; padding: 0; font-size: 12px; text-decoration: underline; }
+
+  .app-loading { min-height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--text-dim); font-size: 14px; background: var(--bg); }
+
+  @media (max-width: 1000px) {
+    .login-grid { grid-template-columns: 1fr; max-width: 460px; }
+    .login-heading { font-size: 30px; }
+    .login-features, .login-tagline { display: none; }
+    .login-brandbar { margin-bottom: 24px; }
+    .login-copy { margin-bottom: 24px; }
+  }
+
+  @media (max-width: 1200px) {
+    .row-2, .row-3 { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .pos-layout { grid-template-columns: 1fr; }
+    .menu-grid { grid-template-columns: repeat(2, 1fr); }
+    .fm-grid { grid-template-columns: repeat(2, 1fr); }
+    .tables-page-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 720px) {
+    .sidebar { display: none; }
+    .kpi-grid { grid-template-columns: 1fr; }
+    .table-grid { grid-template-columns: repeat(2, 1fr); }
+    .qa-grid { grid-template-columns: 1fr 1fr; }
+    .menu-grid { grid-template-columns: 1fr 1fr; }
+    .fm-grid { grid-template-columns: 1fr; }
+    .tables-page-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo } = React;
+
+/* ================= API client ================= */
+
+const API_BASE = (window.API_BASE_URL || (window.location.origin + "/api")).replace(/\/$/, "");
+const TOKEN_KEY = "mahumbezi_token";
+const REFRESH_KEY = "mahumbezi_refresh";
+const USER_KEY = "mahumbezi_user";
+
+// "Remember me" decides which storage a session lives in: localStorage
+// persists across browser restarts, sessionStorage clears when the tab/
+// browser closes. We remember which one is currently in use so refresh and
+// logout act on the right place.
+let activeStorage = null;
+function pickInitialStorage() {
+  try {
+    if (sessionStorage.getItem(TOKEN_KEY)) return sessionStorage;
+  } catch (e) { /* unavailable */ }
+  try {
+    if (localStorage.getItem(TOKEN_KEY)) return localStorage;
+  } catch (e) { /* unavailable */ }
+  return null;
+}
+function storeSession(store, data) {
+  activeStorage = store;
+  try {
+    store.setItem(TOKEN_KEY, data.token);
+    store.setItem(REFRESH_KEY, data.refreshToken || "");
+    store.setItem(USER_KEY, JSON.stringify(data.user));
+  } catch (e) { /* storage unavailable — session-only in memory */ }
+}
+
+let authToken = null;
+let authRefresh = null;
+try {
+  activeStorage = pickInitialStorage();
+  if (activeStorage) {
+    authToken = activeStorage.getItem(TOKEN_KEY);
+    authRefresh = activeStorage.getItem(REFRESH_KEY);
+  }
+} catch (e) { /* storage unavailable */ }
+
+function forceLogout() {
+  authToken = null;
+  authRefresh = null;
+  for (const store of [window.localStorage, window.sessionStorage]) {
+    try {
+      store.removeItem(TOKEN_KEY);
+      store.removeItem(REFRESH_KEY);
+      store.removeItem(USER_KEY);
+    } catch (e) { /* ignore */ }
+  }
+  activeStorage = null;
+  window.dispatchEvent(new Event("mahumbezi:logout"));
+}
+
+// Swap a valid refresh token for a fresh access token. Called automatically
+// when an API call comes back 401. Returns true on success.
+async function refreshSession() {
+  if (!authRefresh) return false;
+  try {
+    const res = await fetch(API_BASE + "/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken: authRefresh }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data && data.error);
+    authToken = data.token;
+    authRefresh = data.refreshToken;
+    storeSession(activeStorage || localStorage, data);
+    window.dispatchEvent(new CustomEvent("mahumbezi:token", { detail: data }));
+    return true;
+  } catch (e) {
+    forceLogout();
+    return false;
+  }
+}
+
+
+async function apiRequest(path, { method = "GET", body, auth = true, _retried = false } = {}) {
+  const headers = { "Content-Type": "application/json" };
+  if (auth && authToken) headers["Authorization"] = "Bearer " + authToken;
+  const res = await fetch(API_BASE + path, {
+    method,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  let data = null;
+  try { data = await res.json(); } catch (e) { /* e.g. 204 No Content */ }
+  if (res.status === 401 && auth && !_retried) {
+    const ok = await refreshSession();
+    if (ok) return apiRequest(path, { method, body, auth, _retried: true });
+  }
+  if (!res.ok) {
+    throw new Error((data && data.error) || ("Request failed (" + res.status + ")"));
+  }
+  return data;
+}
+
+const api = {
+  login: (email, password) => apiRequest("/auth/login", { method: "POST", body: { email, password }, auth: false }),
+  logout: (refreshToken) => apiRequest("/auth/logout", { method: "POST", body: { refreshToken }, auth: false }),
+  getSessions: () => apiRequest("/auth/sessions"),
+  revokeSession: (id) => apiRequest("/auth/sessions/" + id, { method: "DELETE" }),
+  changePassword: (data) => apiRequest("/auth/password", { method: "PUT", body: data }),
+
+  getMenuItems: () => apiRequest("/menu-items"),
+  createMenuItem: (data) => apiRequest("/menu-items", { method: "POST", body: data }),
+  updateMenuItem: (id, data) => apiRequest("/menu-items/" + id, { method: "PUT", body: data }),
+  deleteMenuItem: (id) => apiRequest("/menu-items/" + id, { method: "DELETE" }),
+
+  getTables: () => apiRequest("/tables"),
+  createTable: (data) => apiRequest("/tables", { method: "POST", body: data }),
+  updateTable: (id, data) => apiRequest("/tables/" + id, { method: "PUT", body: data }),
+  deleteTable: (id) => apiRequest("/tables/" + id, { method: "DELETE" }),
+
+  getOrders: () => apiRequest("/orders"),
+  createOrder: (data) => apiRequest("/orders", { method: "POST", body: data }),
+  updateOrderStatus: (id, data) => apiRequest("/orders/" + id + "/status", { method: "PATCH", body: data }),
+
+  getInventory: () => apiRequest("/inventory"),
+  createInventoryItem: (data) => apiRequest("/inventory", { method: "POST", body: data }),
+  updateInventoryItem: (id, data) => apiRequest("/inventory/" + id, { method: "PUT", body: data }),
+  restockInventoryItem: (id, amount) => apiRequest("/inventory/" + id + "/restock", { method: "POST", body: { amount } }),
+  deleteInventoryItem: (id) => apiRequest("/inventory/" + id, { method: "DELETE" }),
+
+  getCustomers: () => apiRequest("/customers"),
+  createCustomer: (data) => apiRequest("/customers", { method: "POST", body: data }),
+  updateCustomer: (id, data) => apiRequest("/customers/" + id, { method: "PUT", body: data }),
+  deleteCustomer: (id) => apiRequest("/customers/" + id, { method: "DELETE" }),
+
+  getSuppliers: () => apiRequest("/suppliers"),
+  createSupplier: (data) => apiRequest("/suppliers", { method: "POST", body: data }),
+  updateSupplier: (id, data) => apiRequest("/suppliers/" + id, { method: "PUT", body: data }),
+  deleteSupplier: (id) => apiRequest("/suppliers/" + id, { method: "DELETE" }),
+
+  getEmployees: () => apiRequest("/employees"),
+  createEmployee: (data) => apiRequest("/employees", { method: "POST", body: data }),
+  updateEmployee: (id, data) => apiRequest("/employees/" + id, { method: "PUT", body: data }),
+  deleteEmployee: (id) => apiRequest("/employees/" + id, { method: "DELETE" }),
+
+  getSettings: () => apiRequest("/settings"),
+  updateSettings: (data) => apiRequest("/settings", { method: "PUT", body: data }),
+
+  getReportsSummary: () => apiRequest("/reports/summary"),
+};
+
+/* ---- map snake_case API rows to the camelCase shape the UI expects ---- */
+
+function toLocalTime(sqlDateUtc) {
+  if (!sqlDateUtc) return "";
+  const d = new Date(sqlDateUtc.replace(" ", "T") + "Z");
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+function toLocalDate(sqlDateUtc) {
+  if (!sqlDateUtc) return "—";
+  const d = new Date(sqlDateUtc.replace(" ", "T") + "Z");
+  return d.toLocaleDateString();
+}
+
+function mapMenuItem(m) {
+  return { id: String(m.id), name: m.name, category: m.category, price: m.price, emoji: m.emoji || "🍽️", available: !!m.available };
+}
+function mapTable(t) {
+  return { id: String(t.id), name: t.name, seats: t.seats, status: t.status };
+}
+function mapOrder(o) {
+  const items = o.items || [];
+  const summary = items.map((i) => i.name + (i.qty > 1 ? " x" + i.qty : "")).join(", ");
+  return {
+    id: o.id,
+    table: o.table_name,
+    items: summary,
+    rawItems: items,
+    subtotal: o.subtotal,
+    tax: o.tax,
+    total: o.total,
+    status: o.status,
+    method: o.method,
+    time: toLocalTime(o.created_at),
+  };
+}
+function mapInventory(i) {
+  return { id: String(i.id), name: i.name, category: i.category, qty: i.qty, unit: i.unit, reorder: i.reorder, supplier: i.supplier || "", updated: toLocalDate(i.updated_at) };
+}
+function mapCustomer(c) {
+  return { id: String(c.id), name: c.name, phone: c.phone, email: c.email || "", tier: c.tier, visits: c.visits, spent: c.spent, lastVisit: c.last_visit ? toLocalDate(c.last_visit) : "—" };
+}
+function mapSupplier(s) {
+  return { id: String(s.id), name: s.name, category: s.category, contact: s.contact || "", phone: s.phone, email: s.email || "", status: s.status, itemsSupplied: s.itemsSupplied || 0 };
+}
+function mapEmployee(e) {
+  return { id: String(e.id), name: e.name, email: e.email, role: e.role, phone: e.phone || "", shift: e.shift || "", status: e.status };
+}
+function mapSettings(s) {
+  return { restaurantName: s.restaurant_name, address: s.address, phone: s.phone, currency: s.currency, vatRate: s.vat_rate };
+}
+
+const NAV_ITEMS = [
+  { icon: "🏠", label: "Dashboard" },
+  { icon: "🛒", label: "Orders / POS" },
+  { icon: "🍽️", label: "Food & Menu" },
+  { icon: "🪑", label: "Tables" },
+  { icon: "📦", label: "Inventory / Stock" },
+  { icon: "👥", label: "Customers" },
+  { icon: "🚚", label: "Suppliers" },
+  { icon: "💳", label: "Sales & Payments" },
+  { icon: "📊", label: "Reports" },
+  { icon: "🧑‍💼", label: "Employees / Users" },
+  { icon: "⚙️", label: "Settings" },
+];
+
+const TABLE_STATUS_CYCLE = ["Available", "Ordering", "Occupied", "Closed"];
+const TABLE_STATUS_FILTERS = ["All", "Available", "Occupied", "Ordering", "Closed"];
+
+const INVENTORY_CATEGORIES = ["All", "Food", "Drinks", "Bar", "Supplies"];
+const STOCK_STATUS_FILTERS = ["All", "In Stock", "Low Stock", "Out of Stock"];
+const UNIT_OPTIONS = ["kg", "l", "pcs", "bottles", "packs"];
+
+
+function stockStatus(item) {
+  if (item.qty <= 0) return "Out of Stock";
+  if (item.qty <= item.reorder) return "Low Stock";
+  return "In Stock";
+}
+function stockPillClass(status) {
+  if (status === "In Stock") return "pill pill-served";
+  if (status === "Low Stock") return "pill pill-preparing";
+  return "pill pill-outofstock";
+}
+
+const CUSTOMER_TIERS = ["All", "VIP", "Regular"];
+
+
+function tierPillClass(tier) {
+  return tier === "VIP" ? "pill pill-vip" : "pill pill-paid";
+}
+
+const SUPPLIER_CATEGORIES = ["All", "Food", "Drinks", "Bar", "Supplies"];
+
+
+function supplierStatusPillClass(status) {
+  return status === "Active" ? "pill pill-served" : "pill pill-outofstock";
+}
+
+const PAYMENT_METHODS = ["Cash", "Mobile Money", "Card"];
+const METHOD_FILTERS = ["All", "Cash", "Mobile Money", "Card"];
+const METHOD_ICON = { "Cash": "💵", "Mobile Money": "📱", "Card": "💳" };
+
+function methodPillClass(method) {
+  if (method === "Cash") return "pill pill-served";
+  if (method === "Mobile Money") return "pill pill-vip";
+  if (method === "Card") return "pill pill-paid";
+  return "pill";
+}
+
+const EMPLOYEE_ROLES = ["All", "Admin", "Manager", "Waiter", "Chef", "Bartender", "Cashier"];
+const EMPLOYEE_STATUSES = ["Active", "On Leave", "Inactive"];
+const SHIFTS = ["Morning", "Afternoon", "Evening"];
+
+
+function employeeStatusPillClass(status) {
+  if (status === "Active") return "pill pill-served";
+  if (status === "On Leave") return "pill pill-preparing";
+  return "pill pill-outofstock";
+}
+function rolePillClass(role) {
+  return role === "Admin" || role === "Manager" ? "pill pill-vip" : "pill pill-paid";
+}
+
+const QUICK_ACTIONS = [
+  { icon: "🛒", label: "New Order" },
+  { icon: "🍽️", label: "Add Menu Item" },
+  { icon: "📦", label: "Add Stock" },
+  { icon: "💳", label: "Make Payment" },
+  { icon: "🖨️", label: "Print Receipt" },
+  { icon: "📊", label: "View Reports" },
+];
+
+
+const CATEGORIES = ["All", "Food", "Drinks", "Bar"];
+const STATUS_FILTERS = ["All", "Preparing", "Served", "Paid"];
+const STATUS_CYCLE = ["Preparing", "Served", "Paid"];
+
+function fmt(n) { return "RWF " + n.toLocaleString(); }
+
+function statusPillClass(status) {
+  if (status === "Preparing") return "pill pill-preparing";
+  if (status === "Served") return "pill pill-served";
+  return "pill pill-paid";
+}
+
+function catPillClass(cat) {
+  return "cat-pill " + (cat === "Food" ? "cat-food" : "cat-drinks");
+}
+
+function tableStatusClass(status) {
+  return "tbl-card s-" + status.toLowerCase();
+}
+
+function Sidebar({ page, onNavigate }) {
+  return (
+    <div className="sidebar">
+      <div className="brand">
+        <img src="/assets/logo.png" alt="Mahumbezi" className="brand-logo" />
+        <div>
+          <div className="brand-name">MAHUMBEZI</div>
+          <div className="brand-sub">BAR & RESTAURANT</div>
+        </div>
+      </div>
+      <nav className="nav">
+        {NAV_ITEMS.map(item => (
+          <button
+            key={item.label}
+            className={"nav-item" + (page === item.label ? " active" : "")}
+            onClick={() => onNavigate(item.label)}
+          >
+            <span className="nav-icon">{item.icon}</span>
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </nav>
+      <div className="promo">
+        “Good Food, Great Drinks, Happy People.”
+        <strong>MAHUMBEZI</strong>
+      </div>
+    </div>
+  );
+}
+
+function Topbar({ user, onLogout, data, onNavigate }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const [focused, setFocused] = useState(false);
+  const query = q.trim().toLowerCase();
+
+  const results = [];
+  if (query) {
+    const push = (page, label, sub) => {
+      const hay = (label + " " + (sub || "")).toLowerCase();
+      if (hay.includes(query)) results.push({ page, label, sub });
+    };
+    (data.menuItems || []).forEach((m) => push("Food & Menu", m.name, "Menu · " + m.category));
+    (data.tables || []).forEach((t) => push("Tables", t.name, t.seats + " seats"));
+    (data.orders || []).forEach((o) => push("Orders / POS", o.table + " · Order #" + o.id, o.status + " · " + o.items));
+    (data.customers || []).forEach((c) => push("Customers", c.name, [c.phone, c.email].filter(Boolean).join(" · ")));
+    (data.suppliers || []).forEach((s) => push("Suppliers", s.name, s.category));
+    (data.inventory || []).forEach((i) => push("Inventory / Stock", i.name, i.category));
+    (data.employees || []).forEach((e) => push("Employees / Users", e.name, e.role));
+  }
+
+  function pick(r) {
+    onNavigate(r.page);
+    setQ("");
+  }
+
+  return (
+    <div className="topbar">
+      <div className="search" style={{ position: "relative" }}>
+        <span>🔍</span>
+        <input
+          placeholder="Search menu, table, order, customer..."
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+        />
+        {q.trim() !== "" && focused && (
+          <div style={{
+            position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0,
+            background: "var(--panel-2)", border: "1px solid var(--border)",
+            borderRadius: "10px", boxShadow: "0 8px 24px rgba(0,0,0,0.35)", zIndex: 20,
+            maxHeight: "340px", overflow: "auto", padding: "6px",
+          }}>
+            {results.length === 0 ? (
+              <div style={{ padding: "10px", color: "var(--text-dim)", fontSize: "12.5px" }}>No matches for “{q.trim()}”</div>
+            ) : (
+              results.map((r, i) => (
+                <button key={i} className="search-result"
+                  onMouseDown={(e) => { e.preventDefault(); pick(r); }}
+                  style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", borderRadius: "8px", padding: "8px 10px", cursor: "pointer" }}>
+                  <div style={{ fontWeight: 600, fontSize: "13px", color: "var(--text)" }}>{r.label}</div>
+                  <div style={{ fontSize: "11px", color: "var(--text-dim)" }}>{r.page}{r.sub ? " · " + r.sub : ""}</div>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+      <div className="topbar-right">
+        <div className="bell">🔔<span className="bell-badge">3</span></div>
+        <div className="profile" style={{ position: "relative" }} onClick={() => setMenuOpen((v) => !v)}>
+          <div className="avatar">🧑🏾</div>
+          <div>
+            <div className="profile-name">{user ? user.name : "Guest"} {user ? "(" + user.role + ")" : ""}</div>
+            <div className="profile-status"><span className="dot"></span>Online</div>
+          </div>
+          {menuOpen && (
+            <div style={{
+              position: "absolute", top: "44px", right: 0, background: "var(--panel-2)",
+              border: "1px solid var(--border)", borderRadius: "8px", padding: "6px", minWidth: "120px", zIndex: 10,
+            }}>
+              <button className="btn-secondary" style={{ width: "100%" }} onClick={onLogout}>Log Out</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Hero({ user }) {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(t);
+  }, []);
+  const dateStr = now.toLocaleDateString(undefined, { weekday: "short", day: "2-digit", month: "short", year: "numeric" });
+  const timeStr = now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  const firstName = user ? user.name.split(" ")[0] : "there";
+  return (
+    <div className="hero">
+      <div className="hero-glow"></div>
+      <div className="hero-left">
+        <h1>Welcome, {firstName}!</h1>
+        <p>Here's what's happening at Mahumbezi today.</p>
+      </div>
+      <div className="hero-date">
+        📅
+        <div>
+          <span className="t">{dateStr}</span>
+          {timeStr}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function KpiCards({ summary, onNavigate }) {
+  const today = (summary && summary.today) || { sales: 0, orders: 0, customers: 0 };
+  const lowStockCount = (summary && summary.lowStockItems) ? summary.lowStockItems.length : 0;
+  return (
+    <div className="kpi-grid">
+      <div className="kpi-card kpi-1">
+        <div className="kpi-icon">💰</div>
+        <div className="kpi-label">Total Sales (Today)</div>
+        <div className="kpi-value">{fmt(today.sales)}</div>
+        <div className="kpi-change">Updated live</div>
+      </div>
+      <div className="kpi-card kpi-2">
+        <div className="kpi-icon">🛒</div>
+        <div className="kpi-label">Total Orders (Today)</div>
+        <div className="kpi-value">{today.orders}</div>
+        <div className="kpi-change">Updated live</div>
+      </div>
+      <div className="kpi-card kpi-3">
+        <div className="kpi-icon">👥</div>
+        <div className="kpi-label">Customers (Today)</div>
+        <div className="kpi-value">{today.customers}</div>
+        <div className="kpi-change">New visits today</div>
+      </div>
+      <div className="kpi-card kpi-4">
+        <div className="kpi-icon">📦</div>
+        <div className="kpi-label">Low Stock Items</div>
+        <div className="kpi-value">{lowStockCount}</div>
+        <div className="kpi-link" onClick={() => onNavigate("Inventory / Stock")}>View Details →</div>
+      </div>
+    </div>
+  );
+}
+
+function RecentOrders({ orders, onNavigate }) {
+  return (
+    <div className="panel">
+      <div className="panel-head">
+        <div className="panel-title">🛒 Recent Orders</div>
+        <div className="panel-link" onClick={() => onNavigate("Orders / POS")}>View All →</div>
+      </div>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Table</th><th>Items</th><th>Total</th><th>Status</th><th>Time</th></tr>
+        </thead>
+        <tbody>
+          {orders.slice(0, 5).map(o => (
+            <tr key={o.id}>
+              <td className="id-cell">#{o.id}</td>
+              <td>{o.table}</td>
+              <td>{o.items}</td>
+              <td>{fmt(o.total)}</td>
+              <td><span className={statusPillClass(o.status)}>{o.status}</span></td>
+              <td className="id-cell">{o.time}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function TableOverview({ tables, onNavigate }) {
+  return (
+    <div className="panel">
+      <div className="panel-head">
+        <div className="panel-title">🪑 Table Overview</div>
+        <div className="panel-link" onClick={() => onNavigate("Tables")}>View All →</div>
+      </div>
+      <div className="table-grid">
+        {tables.map(t => (
+          <div key={t.id} className={tableStatusClass(t.status)}>
+            <div className="tbl-icon">🪑</div>
+            <div className="tbl-name">{t.name}</div>
+            <div className="tbl-status">{t.status}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TopMenuItems({ topSellers }) {
+  const items = (topSellers || []).slice(0, 5);
+  return (
+    <div className="panel">
+      <div className="panel-head">
+        <div className="panel-title">⭐ Top Menu Items</div>
+        <div className="panel-link">View All →</div>
+      </div>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Item</th><th>Category</th><th>Sold</th><th aria-label="Trend"></th></tr>
+        </thead>
+        <tbody>
+          {items.map((it, i) => (
+            <tr key={it.name || i}>
+              <td className="id-cell">{i + 1}</td>
+              <td style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span className="food-thumb">{it.emoji || "🍽️"}</span>{it.name}
+              </td>
+              <td><span className={catPillClass(it.category)}>{it.category || "—"}</span></td>
+              <td>{it.sold}</td>
+              <td className="trend-up">▲</td>
+            </tr>
+          ))}
+          {items.length === 0 && (
+            <tr><td colSpan="5" style={{ textAlign: "center", color: "var(--text-faint)", padding: "20px 0" }}>No sales yet.</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function niceCeil(n) {
+  if (n <= 0) return 1000;
+  const pow = Math.pow(10, Math.floor(Math.log10(n)));
+  const steps = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+  for (const s of steps) if (pow * s >= n) return pow * s;
+  return pow * 10;
+}
+
+function SalesChart({ data }) {
+  const points = (data || []).slice(0, 7);
+  const max = Math.max(1, ...points.map(d => d.value));
+  const nice = niceCeil(max);
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map(f => Math.round(nice * f));
+  return (
+    <div className="panel">
+      <div className="panel-head">
+        <div className="panel-title">📈 Sales Overview</div>
+        <span style={{ marginLeft: "auto", fontSize: "12px", color: "var(--text-faint)" }}>Last 7 days</span>
+      </div>
+      <div style={{ display: "flex" }}>
+        <div className="y-axis">
+          {yTicks.map(t => <div key={t}>{t >= 1000 ? (t / 1000) + "K" : t}</div>)}
+        </div>
+        <div className="chart-wrap">
+          {points.map(d => (
+            <div className="bar-col" key={d.date || d.label}>
+              <div className="bar" style={{ height: Math.max(1, (d.value / nice * 100)) + "%" }} title={fmt(d.value)}></div>
+              <div className="bar-day">{d.label}</div>
+            </div>
+          ))}
+          {points.length === 0 && (
+            <div className="cart-empty" style={{ width: "100%" }}>No sales recorded yet.</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const QA_ROUTES = { "New Order": "Orders / POS", "Add Stock": "Inventory / Stock", "View Reports": "Reports", "Make Payment": "Sales & Payments" };
+
+function QuickActions({ onNavigate }) {
+  return (
+    <div className="panel">
+      <div className="panel-head">
+        <div className="panel-title">⚡ Quick Actions</div>
+      </div>
+      <div className="qa-grid">
+        {QUICK_ACTIONS.map(a => (
+          <button className="qa-btn" key={a.label} onClick={() => QA_ROUTES[a.label] && onNavigate(QA_ROUTES[a.label])}>
+            <span className="qa-icon">{a.icon}</span>{a.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Dashboard({ orders, tables, inventory, summary, onNavigate, user }) {
+  return (
+    <React.Fragment>
+      <Hero user={user} />
+      <KpiCards summary={summary} onNavigate={onNavigate} />
+      <div className="row row-2">
+        <RecentOrders orders={orders} onNavigate={onNavigate} />
+        <TableOverview tables={tables} onNavigate={onNavigate} />
+      </div>
+      <div className="row row-3">
+        <TopMenuItems topSellers={summary && summary.topSellers} />
+        <SalesChart data={summary && summary.salesByDay} />
+        <QuickActions onNavigate={onNavigate} />
+      </div>
+      <div className="footer">
+        Mahumbezi Bar &amp; Restaurant System <span>v1.0</span>
+        <span>Better Service | Smarter Management | Mahumbezi</span>
+      </div>
+    </React.Fragment>
+  );
+}
+
+/* ---------------- Orders / POS page ---------------- */
+
+function MenuPanel({ menuItems, cart, setCart }) {
+  const [cat, setCat] = useState("All");
+  const available = menuItems.filter(m => m.available);
+  const filtered = cat === "All" ? available : available.filter(m => m.category === cat);
+
+  function addItem(item) {
+    setCart(prev => {
+      const existing = prev.find(c => c.id === item.id);
+      if (existing) {
+        return prev.map(c => c.id === item.id ? { ...c, qty: c.qty + 1 } : c);
+      }
+      return [...prev, { ...item, qty: 1 }];
+    });
+  }
+
+  return (
+    <div className="panel">
+      <div className="panel-head">
+        <div className="panel-title">🍽️ Menu</div>
+      </div>
+      <div className="cat-tabs">
+        {CATEGORIES.map(c => (
+          <button key={c} className={"cat-tab" + (cat === c ? " active" : "")} onClick={() => setCat(c)}>{c}</button>
+        ))}
+      </div>
+      <div className="menu-grid">
+        {filtered.map(item => (
+          <div className="menu-card" key={item.id} onClick={() => addItem(item)}>
+            <div className="m-icon">{item.emoji}</div>
+            <div className="m-name">{item.name}</div>
+            <div className="m-foot">
+              <span className="m-price">{fmt(item.price)}</span>
+              <button className="m-add" onClick={(e) => { e.stopPropagation(); addItem(item); }}>+</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OrderPanel({ cart, setCart, onPlaceOrder, tables, vatRate }) {
+  const [table, setTable] = useState("T1");
+  const [placed, setPlaced] = useState(false);
+
+  const subtotal = useMemo(() => cart.reduce((s, c) => s + c.price * c.qty, 0), [cart]);
+  const tax = Math.round(subtotal * (vatRate / 100));
+  const total = subtotal + tax;
+
+  function changeQty(id, delta) {
+    setCart(prev => prev
+      .map(c => c.id === id ? { ...c, qty: c.qty + delta } : c)
+      .filter(c => c.qty > 0));
+  }
+  function removeItem(id) {
+    setCart(prev => prev.filter(c => c.id !== id));
+  }
+  async function place() {
+    if (cart.length === 0) return;
+    try {
+      await onPlaceOrder(table, cart);
+      setCart([]);
+      setPlaced(true);
+      setTimeout(() => setPlaced(false), 2500);
+    } catch (err) {
+      // error already surfaced by the parent page's error banner
+    }
+  }
+
+  return (
+    <div className="panel order-panel">
+      <div className="panel-head">
+        <div className="panel-title">🧾 Current Order</div>
+      </div>
+      <label className="field-label">Table / Bar</label>
+      <select className="table-select" value={table} onChange={e => setTable(e.target.value)}>
+        {tables.map(t => <option key={t.id} value={t.name}>{t.name} · {t.status}</option>)}
+      </select>
+
+      {cart.length === 0 ? (
+        <div className="cart-empty">No items yet — tap a menu item to add it.</div>
+      ) : (
+        <div className="cart-list">
+          {cart.map(c => (
+            <div className="cart-row" key={c.id}>
+              <span style={{ fontSize: "16px" }}>{c.emoji}</span>
+              <div className="c-name">{c.name}<br /><span className="c-price">{fmt(c.price)}</span></div>
+              <div className="qty-ctrl">
+                <button className="qty-btn" onClick={() => changeQty(c.id, -1)}>−</button>
+                <span className="qty-val">{c.qty}</span>
+                <button className="qty-btn" onClick={() => changeQty(c.id, 1)}>+</button>
+              </div>
+              <button className="cart-remove" onClick={() => removeItem(c.id)}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="totals-row"><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
+      <div className="totals-row"><span>VAT ({vatRate}%)</span><span>{fmt(tax)}</span></div>
+      <div className="totals-row grand"><span>Total</span><span>{fmt(total)}</span></div>
+
+      <button className="place-order-btn" disabled={cart.length === 0} onClick={place}>Place Order</button>
+      {placed && <div className="toast">✓ Order sent to kitchen / bar</div>}
+    </div>
+  );
+}
+
+function ActiveOrders({ orders, onCycleStatus }) {
+  const [filter, setFilter] = useState("All");
+  const filtered = filter === "All" ? orders : orders.filter(o => o.status === filter);
+
+  return (
+    <div className="panel" style={{ marginTop: "18px" }}>
+      <div className="panel-head">
+        <div className="panel-title">📋 Active Orders</div>
+      </div>
+      <div className="status-tabs">
+        {STATUS_FILTERS.map(s => (
+          <button key={s} className={"status-tab" + (filter === s ? " active" : "")} onClick={() => setFilter(s)}>{s}</button>
+        ))}
+      </div>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Table</th><th>Items</th><th>Total</th><th>Status</th><th>Time</th></tr>
+        </thead>
+        <tbody>
+          {filtered.map(o => (
+            <tr key={o.id}>
+              <td className="id-cell">#{o.id}</td>
+              <td>{o.table}</td>
+              <td>{o.items}</td>
+              <td>{fmt(o.total)}</td>
+              <td>
+                <span
+                  className={statusPillClass(o.status)}
+                  onClick={() => onCycleStatus(o)}
+                  style={o.status === "Paid" ? { cursor: "default", opacity: 0.7 } : undefined}
+                  title={o.status === "Paid" ? "Paid orders are managed in Sales & Payments" : "Click to advance status"}
+                >
+                  {o.status}
+                </span>
+              </td>
+              <td className="id-cell">{o.time}</td>
+            </tr>
+          ))}
+          {filtered.length === 0 && (
+            <tr><td colSpan="6" style={{ textAlign: "center", color: "var(--text-faint)", padding: "20px 0" }}>No orders in this status.</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function OrdersPOS({ orders, menuItems, tables, vatRate, reload }) {
+  const [cart, setCart] = useState([]);
+  const [error, setError] = useState("");
+
+  async function handlePlaceOrder(table, items) {
+    try {
+      const payload = {
+        tableName: table,
+        items: items.map(i => ({ menuItemId: Number(i.id), name: i.name, price: i.price, qty: i.qty })),
+      };
+      await api.createOrder(payload);
+      await reload();
+    } catch (err) {
+      setError(err.message);
+      throw err; // let OrderPanel know the order didn't go through
+    }
+  }
+
+  async function cycleStatus(order) {
+    // Preparing <-> Served here; marking Paid requires a payment method,
+    // which is collected in Sales & Payments.
+    if (order.status === "Paid") return;
+    const next = order.status === "Preparing" ? "Served" : "Preparing";
+    try {
+      await api.updateOrderStatus(order.id, { status: next });
+      await reload();
+    } catch (err) { setError(err.message); }
+  }
+
+  return (
+    <React.Fragment>
+      <div className="page-head">
+        <div>
+          <h1>Orders / POS</h1>
+          <p>Build an order, send it to the kitchen or bar, and track every table's status.</p>
+        </div>
+      </div>
+      {error && <div className="toast" style={{ background: "var(--red-bg)", color: "var(--red)", maxWidth: "320px" }}>{error}</div>}
+      <div className="pos-layout">
+        <MenuPanel menuItems={menuItems} cart={cart} setCart={setCart} />
+        <OrderPanel cart={cart} setCart={setCart} onPlaceOrder={handlePlaceOrder} tables={tables} vatRate={vatRate} />
+      </div>
+      <ActiveOrders orders={orders} onCycleStatus={cycleStatus} />
+    </React.Fragment>
+  );
+}
+
+/* ---------------- Food & Menu page ---------------- */
+
+const EMPTY_ITEM = { name: "", category: "Food", price: "", emoji: "🍽️", available: true };
+const EMOJI_CHOICES = ["🍔","🍕","🍟","🍗","🍢","🥗","🍝","🥩","🍲","🍹","🍺","🧃","🥤","🥃","🍷","☕"];
+
+function ItemFormModal({ initial, onCancel, onSave }) {
+  const [form, setForm] = useState(initial);
+  const isEdit = !!initial.id;
+
+  function update(field, value) { setForm(prev => ({ ...prev, [field]: value })); }
+
+  function submit() {
+    if (!form.name.trim() || !form.price) return;
+    onSave({ ...form, price: Number(form.price) });
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div className="modal-card" onClick={e => e.stopPropagation()}>
+        <div className="panel-title" style={{ marginBottom: "16px" }}>
+          {isEdit ? "Edit Menu Item" : "Add Menu Item"}
+        </div>
+
+        <label className="field-label">Name</label>
+        <input className="table-select" value={form.name} onChange={e => update("name", e.target.value)} placeholder="e.g. Beef Samosa" />
+
+        <label className="field-label">Category</label>
+        <select className="table-select" value={form.category} onChange={e => update("category", e.target.value)}>
+          <option>Food</option><option>Drinks</option><option>Bar</option>
+        </select>
+
+        <label className="field-label">Price (RWF)</label>
+        <input className="table-select" type="number" value={form.price} onChange={e => update("price", e.target.value)} placeholder="e.g. 3500" />
+
+        <label className="field-label">Icon</label>
+        <div className="emoji-grid">
+          {EMOJI_CHOICES.map(e => (
+            <button key={e} type="button" className={"emoji-choice" + (form.emoji === e ? " active" : "")} onClick={() => update("emoji", e)}>{e}</button>
+          ))}
+        </div>
+
+        <label className="field-label" style={{ marginTop: "4px" }}>
+          <span className="toggle-inline">
+            <span className={"toggle" + (form.available ? " on" : "")} onClick={() => update("available", !form.available)}>
+              <span className="toggle-knob"></span>
+            </span>
+            {" "}Available on menu
+          </span>
+        </label>
+
+        <div className="modal-actions">
+          <button className="btn-secondary" onClick={onCancel}>Cancel</button>
+          <button className="place-order-btn" style={{ marginTop: 0 }} onClick={submit}>{isEdit ? "Save Changes" : "Add Item"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FoodMenu({ menuItems, reload }) {
+  const [cat, setCat] = useState("All");
+  const [query, setQuery] = useState("");
+  const [modalItem, setModalItem] = useState(null);
+  const [error, setError] = useState("");
+
+  const filtered = menuItems.filter(m =>
+    (cat === "All" || m.category === cat) &&
+    m.name.toLowerCase().includes(query.toLowerCase())
+  );
+
+  async function toggleAvailable(item) {
+    try {
+      await api.updateMenuItem(item.id, { available: !item.available });
+      await reload();
+    } catch (err) { setError(err.message); }
+  }
+  async function deleteItem(id) {
+    try {
+      await api.deleteMenuItem(id);
+      await reload();
+    } catch (err) { setError(err.message); }
+  }
+  async function saveItem(item) {
+    try {
+      const payload = { name: item.name, category: item.category, price: Number(item.price), emoji: item.emoji, available: item.available };
+      if (item.id) {
+        await api.updateMenuItem(item.id, payload);
+      } else {
+        await api.createMenuItem(payload);
+      }
+      await reload();
+      setModalItem(null);
+    } catch (err) { setError(err.message); }
+  }
+
+  return (
+    <React.Fragment>
+      <div className="page-head">
+        <div>
+          <h1>Food & Menu</h1>
+          <p>Manage every dish and drink your team can add to an order.</p>
+        </div>
+        <button className="place-order-btn" style={{ width: "auto", marginTop: 0, padding: "11px 18px" }} onClick={() => setModalItem({ ...EMPTY_ITEM, available: true })}>
+          + Add Menu Item
+        </button>
+      </div>
+
+      {error && <div className="toast" style={{ background: "var(--red-bg)", color: "var(--red)", maxWidth: "320px" }}>{error}</div>}
+
+      <div className="panel">
+        <div className="panel-head">
+          <div className="cat-tabs" style={{ marginBottom: 0 }}>
+            {CATEGORIES.map(c => (
+              <button key={c} className={"cat-tab" + (cat === c ? " active" : "")} onClick={() => setCat(c)}>{c}</button>
+            ))}
+          </div>
+          <div className="search" style={{ maxWidth: "240px", marginLeft: "auto" }}>
+            🔍<input placeholder="Search items..." value={query} onChange={e => setQuery(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="fm-grid">
+          {filtered.map(item => (
+            <div className="fm-card" key={item.id}>
+              <div className="fm-top">
+                <div className="m-icon">{item.emoji}</div>
+                <span className={"toggle" + (item.available ? " on" : "")} onClick={() => toggleAvailable(item)} title="Toggle availability">
+                  <span className="toggle-knob"></span>
+                </span>
+              </div>
+              <div className="m-name">{item.name}</div>
+              <span className={"cat-pill " + (item.category === "Food" ? "cat-food" : "cat-drinks")}>{item.category}</span>
+              <div className="fm-foot">
+                <span className="m-price">{fmt(item.price)}</span>
+                <div className="fm-actions">
+                  <button className="icon-btn" onClick={() => setModalItem(item)}>✏️</button>
+                  <button className="icon-btn danger" onClick={() => deleteItem(item.id)}>🗑️</button>
+                </div>
+              </div>
+              <div className={"avail-tag" + (item.available ? "" : " off")}>{item.available ? "Available" : "Out of stock"}</div>
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <div className="cart-empty" style={{ gridColumn: "1 / -1" }}>No menu items match your filters.</div>
+          )}
+        </div>
+      </div>
+
+      {modalItem && (
+        <ItemFormModal
+          initial={modalItem}
+          onCancel={() => setModalItem(null)}
+          onSave={saveItem}
+        />
+      )}
+    </React.Fragment>
+  );
+}
+
+/* ---------------- Tables page ---------------- */
+
+const EMPTY_TABLE = { name: "", seats: 4 };
+
+function TableFormModal({ onCancel, onSave, suggestedName }) {
+  const [form, setForm] = useState({ ...EMPTY_TABLE, name: suggestedName });
+  function update(field, value) { setForm(prev => ({ ...prev, [field]: value })); }
+  function submit() {
+    if (!form.name.trim()) return;
+    onSave({ ...form, seats: Number(form.seats) || 2 });
+  }
+  return (
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div className="modal-card" onClick={e => e.stopPropagation()}>
+        <div className="panel-title" style={{ marginBottom: "16px" }}>Add Table</div>
+        <label className="field-label">Table Name</label>
+        <input className="table-select" value={form.name} onChange={e => update("name", e.target.value)} placeholder="e.g. T9" />
+        <label className="field-label">Seats</label>
+        <input className="table-select" type="number" min="1" value={form.seats} onChange={e => update("seats", e.target.value)} />
+        <div className="modal-actions">
+          <button className="btn-secondary" onClick={onCancel}>Cancel</button>
+          <button className="place-order-btn" style={{ marginTop: 0 }} onClick={submit}>Add Table</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TablesPage({ tables, reload, orders }) {
+  const [filter, setFilter] = useState("All");
+  const [showModal, setShowModal] = useState(false);
+  const [error, setError] = useState("");
+
+  const filtered = filter === "All" ? tables : tables.filter(t => t.status === filter);
+  const counts = TABLE_STATUS_FILTERS.reduce((acc, s) => {
+    acc[s] = s === "All" ? tables.length : tables.filter(t => t.status === s).length;
+    return acc;
+  }, {});
+
+  async function cycleStatus(table) {
+    const idx = TABLE_STATUS_CYCLE.indexOf(table.status);
+    const next = TABLE_STATUS_CYCLE[(idx + 1) % TABLE_STATUS_CYCLE.length];
+    try {
+      await api.updateTable(table.id, { status: next });
+      await reload();
+    } catch (err) { setError(err.message); }
+  }
+  async function removeTable(id) {
+    try {
+      await api.deleteTable(id);
+      await reload();
+    } catch (err) { setError(err.message); }
+  }
+  async function addTable(data) {
+    try {
+      await api.createTable(data);
+      await reload();
+      setShowModal(false);
+    } catch (err) { setError(err.message); }
+  }
+  function activeOrderFor(tableName) {
+    return orders.find(o => o.table === tableName && o.status !== "Paid");
+  }
+
+  const nextName = "T" + (tables.length + 1);
+
+  return (
+    <React.Fragment>
+      <div className="page-head">
+        <div>
+          <h1>Tables</h1>
+          <p>See every table at a glance and update its status as guests come and go.</p>
+        </div>
+        <button className="place-order-btn" style={{ width: "auto", marginTop: 0, padding: "11px 18px" }} onClick={() => setShowModal(true)}>
+          + Add Table
+        </button>
+      </div>
+
+      {error && <div className="toast" style={{ background: "var(--red-bg)", color: "var(--red)", maxWidth: "320px" }}>{error}</div>}
+
+      <div className="panel">
+        <div className="status-tabs" style={{ flexWrap: "wrap" }}>
+          {TABLE_STATUS_FILTERS.map(s => (
+            <button key={s} className={"status-tab" + (filter === s ? " active" : "")} onClick={() => setFilter(s)}>
+              {s} · {counts[s]}
+            </button>
+          ))}
+        </div>
+
+        <div className="tables-page-grid">
+          {filtered.map(t => {
+            const order = activeOrderFor(t.name);
+            return (
+              <div key={t.id} className={tableStatusClass(t.status) + " tp-card"}>
+                <button className="tp-remove" onClick={() => removeTable(t.id)} title="Remove table">✕</button>
+                <div className="tbl-icon" style={{ fontSize: "26px" }}>🪑</div>
+                <div className="tbl-name" style={{ fontSize: "15px" }}>{t.name}</div>
+                <div className="tp-seats">{t.seats} seats</div>
+                <button className="tbl-status tp-status-btn" onClick={() => cycleStatus(t)}>{t.status}</button>
+                {order && <div className="tp-order-tag">Order #{order.id} · {fmt(order.total)}</div>}
+              </div>
+            );
+          })}
+          {filtered.length === 0 && (
+            <div className="cart-empty" style={{ gridColumn: "1 / -1" }}>No tables with this status.</div>
+          )}
+        </div>
+      </div>
+
+      {showModal && (
+        <TableFormModal suggestedName={nextName} onCancel={() => setShowModal(false)} onSave={addTable} />
+      )}
+    </React.Fragment>
+  );
+}
+
+/* ---------------- Inventory / Stock page ---------------- */
+
+const EMPTY_STOCK_ITEM = { name: "", category: "Food", qty: "", unit: "kg", reorder: "", supplier: "" };
+
+function StockFormModal({ initial, onCancel, onSave }) {
+  const [form, setForm] = useState(initial);
+  const isEdit = !!initial.id;
+  function update(field, value) { setForm(prev => ({ ...prev, [field]: value })); }
+  function submit() {
+    if (!form.name.trim() || form.qty === "" || form.reorder === "") return;
+    onSave({ ...form, qty: Number(form.qty), reorder: Number(form.reorder) });
+  }
+  return (
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div className="modal-card" onClick={e => e.stopPropagation()}>
+        <div className="panel-title" style={{ marginBottom: "16px" }}>{isEdit ? "Edit Stock Item" : "Add Stock Item"}</div>
+
+        <label className="field-label">Name</label>
+        <input className="table-select" value={form.name} onChange={e => update("name", e.target.value)} placeholder="e.g. Rice" />
+
+        <label className="field-label">Category</label>
+        <select className="table-select" value={form.category} onChange={e => update("category", e.target.value)}>
+          <option>Food</option><option>Drinks</option><option>Bar</option><option>Supplies</option>
+        </select>
+
+        <div style={{ display: "flex", gap: "10px" }}>
+          <div style={{ flex: 1 }}>
+            <label className="field-label">Quantity</label>
+            <input className="table-select" type="number" value={form.qty} onChange={e => update("qty", e.target.value)} placeholder="0" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label className="field-label">Unit</label>
+            <select className="table-select" value={form.unit} onChange={e => update("unit", e.target.value)}>
+              {UNIT_OPTIONS.map(u => <option key={u}>{u}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <label className="field-label">Reorder Level</label>
+        <input className="table-select" type="number" value={form.reorder} onChange={e => update("reorder", e.target.value)} placeholder="Alert when stock falls to this" />
+
+        <label className="field-label">Supplier</label>
+        <input className="table-select" value={form.supplier} onChange={e => update("supplier", e.target.value)} placeholder="e.g. Fresh Farms Co." />
+
+        <div className="modal-actions">
+          <button className="btn-secondary" onClick={onCancel}>Cancel</button>
+          <button className="place-order-btn" style={{ marginTop: 0 }} onClick={submit}>{isEdit ? "Save Changes" : "Add Item"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RestockModal({ item, onCancel, onSave }) {
+  const [amount, setAmount] = useState("");
+  function submit() {
+    const n = Number(amount);
+    if (!n || n <= 0) return;
+    onSave(item.id, n);
+  }
+  return (
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div className="modal-card" onClick={e => e.stopPropagation()}>
+        <div className="panel-title" style={{ marginBottom: "6px" }}>Restock “{item.name}”</div>
+        <p style={{ fontSize: "12.5px", color: "var(--text-dim)", margin: "0 0 16px" }}>
+          Currently {item.qty} {item.unit} in stock.
+        </p>
+        <label className="field-label">Amount to add ({item.unit})</label>
+        <input className="table-select" type="number" autoFocus value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" />
+        <div className="modal-actions">
+          <button className="btn-secondary" onClick={onCancel}>Cancel</button>
+          <button className="place-order-btn" style={{ marginTop: 0 }} onClick={submit}>Add Stock</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InventoryPage({ inventory, reload }) {
+  const [cat, setCat] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [query, setQuery] = useState("");
+  const [modalItem, setModalItem] = useState(null);
+  const [restockItem, setRestockItem] = useState(null);
+  const [error, setError] = useState("");
+
+  const withStatus = inventory.map(i => ({ ...i, status: stockStatus(i) }));
+  const counts = STOCK_STATUS_FILTERS.reduce((acc, s) => {
+    acc[s] = s === "All" ? withStatus.length : withStatus.filter(i => i.status === s).length;
+    return acc;
+  }, {});
+  const filtered = withStatus.filter(i =>
+    (cat === "All" || i.category === cat) &&
+    (statusFilter === "All" || i.status === statusFilter) &&
+    i.name.toLowerCase().includes(query.toLowerCase())
+  );
+
+  async function deleteItem(id) {
+    try { await api.deleteInventoryItem(id); await reload(); }
+    catch (err) { setError(err.message); }
+  }
+  async function saveItem(item) {
+    try {
+      const payload = { name: item.name, category: item.category, qty: Number(item.qty), unit: item.unit, reorder: Number(item.reorder), supplier: item.supplier };
+      if (item.id) await api.updateInventoryItem(item.id, payload);
+      else await api.createInventoryItem(payload);
+      await reload();
+      setModalItem(null);
+    } catch (err) { setError(err.message); }
+  }
+  async function restock(id, amount) {
+    try {
+      await api.restockInventoryItem(id, amount);
+      await reload();
+      setRestockItem(null);
+    } catch (err) { setError(err.message); }
+  }
+
+  return (
+    <React.Fragment>
+      <div className="page-head">
+        <div>
+          <h1>Inventory / Stock</h1>
+          <p>Track ingredient and supply levels, and know what to reorder before it runs out.</p>
+        </div>
+        <button className="place-order-btn" style={{ width: "auto", marginTop: 0, padding: "11px 18px" }} onClick={() => setModalItem({ ...EMPTY_STOCK_ITEM })}>
+          + Add Stock Item
+        </button>
+      </div>
+
+      {error && <div className="toast" style={{ background: "var(--red-bg)", color: "var(--red)", maxWidth: "320px" }}>{error}</div>}
+
+      <div className="panel">
+        <div className="panel-head">
+          <div className="cat-tabs" style={{ marginBottom: 0 }}>
+            {INVENTORY_CATEGORIES.map(c => (
+              <button key={c} className={"cat-tab" + (cat === c ? " active" : "")} onClick={() => setCat(c)}>{c}</button>
+            ))}
+          </div>
+          <div className="search" style={{ maxWidth: "220px", marginLeft: "auto" }}>
+            🔍<input placeholder="Search stock..." value={query} onChange={e => setQuery(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="status-tabs" style={{ flexWrap: "wrap" }}>
+          {STOCK_STATUS_FILTERS.map(s => (
+            <button key={s} className={"status-tab" + (statusFilter === s ? " active" : "")} onClick={() => setStatusFilter(s)}>
+              {s} · {counts[s]}
+            </button>
+          ))}
+        </div>
+
+        <table>
+          <thead>
+            <tr><th>Item</th><th>Category</th><th>Quantity</th><th>Reorder At</th><th>Status</th><th>Supplier</th><th>Updated</th><th></th></tr>
+          </thead>
+          <tbody>
+            {filtered.map(i => (
+              <tr key={i.id}>
+                <td style={{ fontWeight: 600 }}>{i.name}</td>
+                <td><span className={"cat-pill " + (i.category === "Food" ? "cat-food" : "cat-drinks")}>{i.category}</span></td>
+                <td>{i.qty} {i.unit}</td>
+                <td className="id-cell">{i.reorder} {i.unit}</td>
+                <td><span className={stockPillClass(i.status)}>{i.status}</span></td>
+                <td className="id-cell">{i.supplier}</td>
+                <td className="id-cell">{i.updated}</td>
+                <td>
+                  <div className="fm-actions">
+                    <button className="icon-btn" title="Restock" onClick={() => setRestockItem(i)}>➕</button>
+                    <button className="icon-btn" title="Edit" onClick={() => setModalItem(i)}>✏️</button>
+                    <button className="icon-btn danger" title="Delete" onClick={() => deleteItem(i.id)}>🗑️</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {filtered.length === 0 && (
+              <tr><td colSpan="8" style={{ textAlign: "center", color: "var(--text-faint)", padding: "20px 0" }}>No stock items match your filters.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {modalItem && (
+        <StockFormModal initial={modalItem} onCancel={() => setModalItem(null)} onSave={saveItem} />
+      )}
+      {restockItem && (
+        <RestockModal item={restockItem} onCancel={() => setRestockItem(null)} onSave={restock} />
+      )}
+    </React.Fragment>
+  );
+}
+
+/* ---------------- Customers page ---------------- */
+
+const EMPTY_CUSTOMER = { name: "", phone: "", email: "", tier: "Regular" };
+
+function CustomerFormModal({ initial, onCancel, onSave }) {
+  const [form, setForm] = useState(initial);
+  const isEdit = !!initial.id;
+  function update(field, value) { setForm(prev => ({ ...prev, [field]: value })); }
+  function submit() {
+    if (!form.name.trim() || !form.phone.trim()) return;
+    onSave(form);
+  }
+  return (
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div className="modal-card" onClick={e => e.stopPropagation()}>
+        <div className="panel-title" style={{ marginBottom: "16px" }}>{isEdit ? "Edit Customer" : "Add Customer"}</div>
+
+        <label className="field-label">Full Name</label>
+        <input className="table-select" value={form.name} onChange={e => update("name", e.target.value)} placeholder="e.g. Aline Umutoni" />
+
+        <label className="field-label">Phone</label>
+        <input className="table-select" value={form.phone} onChange={e => update("phone", e.target.value)} placeholder="+250 78..." />
+
+        <label className="field-label">Email (optional)</label>
+        <input className="table-select" value={form.email || ""} onChange={e => update("email", e.target.value)} placeholder="name@example.com" />
+
+        <label className="field-label">Tier</label>
+        <select className="table-select" value={form.tier} onChange={e => update("tier", e.target.value)}>
+          <option>Regular</option><option>VIP</option>
+        </select>
+
+        <div className="modal-actions">
+          <button className="btn-secondary" onClick={onCancel}>Cancel</button>
+          <button className="place-order-btn" style={{ marginTop: 0 }} onClick={submit}>{isEdit ? "Save Changes" : "Add Customer"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CustomersPage({ customers, reload }) {
+  const [tier, setTier] = useState("All");
+  const [query, setQuery] = useState("");
+  const [modalCustomer, setModalCustomer] = useState(null);
+  const [error, setError] = useState("");
+
+  const filtered = customers.filter(c =>
+    (tier === "All" || c.tier === tier) &&
+    (c.name.toLowerCase().includes(query.toLowerCase()) || c.phone.includes(query))
+  );
+
+  const totalSpent = customers.reduce((s, c) => s + c.spent, 0);
+  const vipCount = customers.filter(c => c.tier === "VIP").length;
+
+  async function deleteCustomer(id) {
+    try { await api.deleteCustomer(id); await reload(); }
+    catch (err) { setError(err.message); }
+  }
+  async function saveCustomer(data) {
+    try {
+      const payload = { name: data.name, phone: data.phone, email: data.email, tier: data.tier };
+      if (data.id) await api.updateCustomer(data.id, payload);
+      else await api.createCustomer(payload);
+      await reload();
+      setModalCustomer(null);
+    } catch (err) { setError(err.message); }
+  }
+
+  return (
+    <React.Fragment>
+      <div className="page-head">
+        <div>
+          <h1>Customers</h1>
+          <p>{customers.length} customers on file · {vipCount} VIP · {fmt(totalSpent)} lifetime spend</p>
+        </div>
+        <button className="place-order-btn" style={{ width: "auto", marginTop: 0, padding: "11px 18px" }} onClick={() => setModalCustomer({ ...EMPTY_CUSTOMER })}>
+          + Add Customer
+        </button>
+      </div>
+
+      {error && <div className="toast" style={{ background: "var(--red-bg)", color: "var(--red)", maxWidth: "320px" }}>{error}</div>}
+
+      <div className="panel">
+        <div className="panel-head">
+          <div className="cat-tabs" style={{ marginBottom: 0 }}>
+            {CUSTOMER_TIERS.map(t => (
+              <button key={t} className={"cat-tab" + (tier === t ? " active" : "")} onClick={() => setTier(t)}>{t}</button>
+            ))}
+          </div>
+          <div className="search" style={{ maxWidth: "240px", marginLeft: "auto" }}>
+            🔍<input placeholder="Search name or phone..." value={query} onChange={e => setQuery(e.target.value)} />
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Phone</th><th>Visits</th><th>Total Spent</th><th>Last Visit</th><th>Tier</th><th></th></tr>
+          </thead>
+          <tbody>
+            {filtered.map(c => (
+              <tr key={c.id}>
+                <td style={{ display: "flex", alignItems: "center", gap: "10px", fontWeight: 600 }}>
+                  <span className="avatar" style={{ width: "28px", height: "28px", fontSize: "12px" }}>
+                    {c.name.split(" ").map(n => n[0]).slice(0, 2).join("")}
+                  </span>
+                  {c.name}
+                </td>
+                <td className="id-cell">{c.phone}</td>
+                <td>{c.visits}</td>
+                <td>{fmt(c.spent)}</td>
+                <td className="id-cell">{c.lastVisit}</td>
+                <td><span className={tierPillClass(c.tier)}>{c.tier}</span></td>
+                <td>
+                  <div className="fm-actions">
+                    <button className="icon-btn" title="Edit" onClick={() => setModalCustomer(c)}>✏️</button>
+                    <button className="icon-btn danger" title="Delete" onClick={() => deleteCustomer(c.id)}>🗑️</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {filtered.length === 0 && (
+              <tr><td colSpan="7" style={{ textAlign: "center", color: "var(--text-faint)", padding: "20px 0" }}>No customers match your filters.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {modalCustomer && (
+        <CustomerFormModal initial={modalCustomer} onCancel={() => setModalCustomer(null)} onSave={saveCustomer} />
+      )}
+    </React.Fragment>
+  );
+}
+
+/* ---------------- Suppliers page ---------------- */
+
+const EMPTY_SUPPLIER = { name: "", category: "Food", contact: "", phone: "", email: "", status: "Active" };
+
+function SupplierFormModal({ initial, onCancel, onSave }) {
+  const [form, setForm] = useState(initial);
+  const isEdit = !!initial.id;
+  function update(field, value) { setForm(prev => ({ ...prev, [field]: value })); }
+  function submit() {
+    if (!form.name.trim() || !form.phone.trim()) return;
+    onSave(form);
+  }
+  return (
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div className="modal-card" onClick={e => e.stopPropagation()}>
+        <div className="panel-title" style={{ marginBottom: "16px" }}>{isEdit ? "Edit Supplier" : "Add Supplier"}</div>
+
+        <label className="field-label">Company Name</label>
+        <input className="table-select" value={form.name} onChange={e => update("name", e.target.value)} placeholder="e.g. Fresh Farms Co." />
+
+        <label className="field-label">Category</label>
+        <select className="table-select" value={form.category} onChange={e => update("category", e.target.value)}>
+          <option>Food</option><option>Drinks</option><option>Bar</option><option>Supplies</option>
+        </select>
+
+        <label className="field-label">Contact Person</label>
+        <input className="table-select" value={form.contact} onChange={e => update("contact", e.target.value)} placeholder="e.g. Solange Ingabire" />
+
+        <label className="field-label">Phone</label>
+        <input className="table-select" value={form.phone} onChange={e => update("phone", e.target.value)} placeholder="+250 78..." />
+
+        <label className="field-label">Email (optional)</label>
+        <input className="table-select" value={form.email || ""} onChange={e => update("email", e.target.value)} placeholder="orders@supplier.rw" />
+
+        <label className="field-label" style={{ marginTop: "4px" }}>
+          <span className="toggle-inline">
+            <span className={"toggle" + (form.status === "Active" ? " on" : "")} onClick={() => update("status", form.status === "Active" ? "Inactive" : "Active")}>
+              <span className="toggle-knob"></span>
+            </span>
+            {" "}Active supplier
+          </span>
+        </label>
+
+        <div className="modal-actions">
+          <button className="btn-secondary" onClick={onCancel}>Cancel</button>
+          <button className="place-order-btn" style={{ marginTop: 0 }} onClick={submit}>{isEdit ? "Save Changes" : "Add Supplier"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SuppliersPage({ suppliers, reload }) {
+  const [cat, setCat] = useState("All");
+  const [query, setQuery] = useState("");
+  const [modalSupplier, setModalSupplier] = useState(null);
+  const [error, setError] = useState("");
+
+  const filtered = suppliers.filter(s =>
+    (cat === "All" || s.category === cat) &&
+    s.name.toLowerCase().includes(query.toLowerCase())
+  );
+
+  async function deleteSupplier(id) {
+    try { await api.deleteSupplier(id); await reload(); }
+    catch (err) { setError(err.message); }
+  }
+  async function saveSupplier(data) {
+    try {
+      const payload = { name: data.name, category: data.category, contact: data.contact, phone: data.phone, email: data.email, status: data.status };
+      if (data.id) await api.updateSupplier(data.id, payload);
+      else await api.createSupplier(payload);
+      await reload();
+      setModalSupplier(null);
+    } catch (err) { setError(err.message); }
+  }
+
+  return (
+    <React.Fragment>
+      <div className="page-head">
+        <div>
+          <h1>Suppliers</h1>
+          <p>The vendors your kitchen and bar order stock from.</p>
+        </div>
+        <button className="place-order-btn" style={{ width: "auto", marginTop: 0, padding: "11px 18px" }} onClick={() => setModalSupplier({ ...EMPTY_SUPPLIER })}>
+          + Add Supplier
+        </button>
+      </div>
+
+      {error && <div className="toast" style={{ background: "var(--red-bg)", color: "var(--red)", maxWidth: "320px" }}>{error}</div>}
+
+      <div className="panel">
+        <div className="panel-head">
+          <div className="cat-tabs" style={{ marginBottom: 0 }}>
+            {SUPPLIER_CATEGORIES.map(c => (
+              <button key={c} className={"cat-tab" + (cat === c ? " active" : "")} onClick={() => setCat(c)}>{c}</button>
+            ))}
+          </div>
+          <div className="search" style={{ maxWidth: "220px", marginLeft: "auto" }}>
+            🔍<input placeholder="Search suppliers..." value={query} onChange={e => setQuery(e.target.value)} />
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr><th>Supplier</th><th>Category</th><th>Contact</th><th>Phone</th><th>Items Supplied</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody>
+            {filtered.map(s => (
+              <tr key={s.id}>
+                <td style={{ fontWeight: 600 }}>{s.name}</td>
+                <td><span className={"cat-pill " + (s.category === "Food" ? "cat-food" : "cat-drinks")}>{s.category}</span></td>
+                <td>{s.contact}</td>
+                <td className="id-cell">{s.phone}</td>
+                <td>{s.itemsSupplied}</td>
+                <td><span className={supplierStatusPillClass(s.status)}>{s.status}</span></td>
+                <td>
+                  <div className="fm-actions">
+                    <button className="icon-btn" title="Edit" onClick={() => setModalSupplier(s)}>✏️</button>
+                    <button className="icon-btn danger" title="Delete" onClick={() => deleteSupplier(s.id)}>🗑️</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {filtered.length === 0 && (
+              <tr><td colSpan="7" style={{ textAlign: "center", color: "var(--text-faint)", padding: "20px 0" }}>No suppliers match your filters.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {modalSupplier && (
+        <SupplierFormModal initial={modalSupplier} onCancel={() => setModalSupplier(null)} onSave={saveSupplier} />
+      )}
+    </React.Fragment>
+  );
+}
+
+/* ---------------- Sales & Payments page ---------------- */
+
+function RecordPaymentModal({ order, onCancel, onSave }) {
+  const [method, setMethod] = useState("Cash");
+  return (
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div className="modal-card" onClick={e => e.stopPropagation()}>
+        <div className="panel-title" style={{ marginBottom: "6px" }}>Record Payment — #{order.id}</div>
+        <p style={{ fontSize: "12.5px", color: "var(--text-dim)", margin: "0 0 16px" }}>
+          {order.table} · {order.items} · <strong style={{ color: "var(--text)" }}>{fmt(order.total)}</strong>
+        </p>
+        <label className="field-label">Payment Method</label>
+        <div className="cat-tabs">
+          {PAYMENT_METHODS.map(m => (
+            <button key={m} className={"cat-tab" + (method === m ? " active" : "")} onClick={() => setMethod(m)}>{METHOD_ICON[m]} {m}</button>
+          ))}
+        </div>
+        <div className="modal-actions">
+          <button className="btn-secondary" onClick={onCancel}>Cancel</button>
+          <button className="place-order-btn" style={{ marginTop: 0 }} onClick={() => onSave(order.id, method)}>Confirm Payment</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SalesPayments({ orders, reload }) {
+  const [methodFilter, setMethodFilter] = useState("All");
+  const [payingOrder, setPayingOrder] = useState(null);
+  const [error, setError] = useState("");
+
+  const paidOrders = orders.filter(o => o.status === "Paid");
+  const awaitingOrders = orders.filter(o => o.status !== "Paid");
+  const filteredPaid = methodFilter === "All" ? paidOrders : paidOrders.filter(o => o.method === methodFilter);
+
+  const totalRevenue = paidOrders.reduce((s, o) => s + o.total, 0);
+  const txCount = paidOrders.length;
+  const avgSale = txCount ? Math.round(totalRevenue / txCount) : 0;
+  const methodTotals = PAYMENT_METHODS.map(m => ({
+    method: m,
+    total: paidOrders.filter(o => o.method === m).reduce((s, o) => s + o.total, 0),
+  }));
+
+  async function confirmPayment(orderId, method) {
+    try {
+      await api.updateOrderStatus(orderId, { status: "Paid", method });
+      await reload();
+      setPayingOrder(null);
+    } catch (err) { setError(err.message); }
+  }
+
+  return (
+    <React.Fragment>
+      <div className="page-head">
+        <div>
+          <h1>Sales &amp; Payments</h1>
+          <p>Every completed transaction, plus anything still waiting to be paid.</p>
+        </div>
+      </div>
+      {error && <div className="toast" style={{ background: "var(--red-bg)", color: "var(--red)", maxWidth: "320px" }}>{error}</div>}
+
+      <div className="kpi-grid">
+        <div className="kpi-card kpi-1">
+          <div className="kpi-icon">💰</div>
+          <div className="kpi-label">Total Revenue</div>
+          <div className="kpi-value">{fmt(totalRevenue)}</div>
+        </div>
+        <div className="kpi-card kpi-2">
+          <div className="kpi-icon">🧾</div>
+          <div className="kpi-label">Transactions</div>
+          <div className="kpi-value">{txCount}</div>
+        </div>
+        <div className="kpi-card kpi-3">
+          <div className="kpi-icon">📊</div>
+          <div className="kpi-label">Average Sale</div>
+          <div className="kpi-value">{fmt(avgSale)}</div>
+        </div>
+        <div className="kpi-card kpi-4">
+          <div className="kpi-icon">⏳</div>
+          <div className="kpi-label">Awaiting Payment</div>
+          <div className="kpi-value">{awaitingOrders.length}</div>
+        </div>
+      </div>
+
+      <div className="row row-2">
+        <div className="panel">
+          <div className="panel-head">
+            <div className="panel-title">⏳ Awaiting Payment</div>
+          </div>
+          <table>
+            <thead>
+              <tr><th>#</th><th>Table</th><th>Items</th><th>Total</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+              {awaitingOrders.map(o => (
+                <tr key={o.id}>
+                  <td className="id-cell">#{o.id}</td>
+                  <td>{o.table}</td>
+                  <td>{o.items}</td>
+                  <td>{fmt(o.total)}</td>
+                  <td><span className={statusPillClass(o.status)}>{o.status}</span></td>
+                  <td><button className="icon-btn" title="Record Payment" onClick={() => setPayingOrder(o)}>💳</button></td>
+                </tr>
+              ))}
+              {awaitingOrders.length === 0 && (
+                <tr><td colSpan="6" style={{ textAlign: "center", color: "var(--text-faint)", padding: "20px 0" }}>Everything is paid up. 🎉</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="panel">
+          <div className="panel-head">
+            <div className="panel-title">💳 By Payment Method</div>
+          </div>
+          {methodTotals.map(m => (
+            <div key={m.method} style={{ marginBottom: "14px" }}>
+              <div className="totals-row" style={{ padding: "0 0 4px" }}>
+                <span>{METHOD_ICON[m.method]} {m.method}</span>
+                <span style={{ color: "var(--text)", fontWeight: 700 }}>{fmt(m.total)}</span>
+              </div>
+              <div style={{ background: "#22262e", borderRadius: "999px", height: "6px", overflow: "hidden" }}>
+                <div style={{
+                  width: (totalRevenue ? (m.total / totalRevenue * 100) : 0) + "%",
+                  height: "100%", background: "linear-gradient(90deg, var(--gold), var(--gold-dim))",
+                }}></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-head">
+          <div className="panel-title">🧾 Payment History</div>
+          <div className="cat-tabs" style={{ marginBottom: 0, marginLeft: "auto" }}>
+            {METHOD_FILTERS.map(m => (
+              <button key={m} className={"cat-tab" + (methodFilter === m ? " active" : "")} onClick={() => setMethodFilter(m)}>{m}</button>
+            ))}
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr><th>#</th><th>Table</th><th>Items</th><th>Total</th><th>Method</th><th>Time</th></tr>
+          </thead>
+          <tbody>
+            {filteredPaid.map(o => (
+              <tr key={o.id}>
+                <td className="id-cell">#{o.id}</td>
+                <td>{o.table}</td>
+                <td>{o.items}</td>
+                <td>{fmt(o.total)}</td>
+                <td><span className={methodPillClass(o.method)}>{o.method || "—"}</span></td>
+                <td className="id-cell">{o.time}</td>
+              </tr>
+            ))}
+            {filteredPaid.length === 0 && (
+              <tr><td colSpan="6" style={{ textAlign: "center", color: "var(--text-faint)", padding: "20px 0" }}>No payments for this filter yet.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {payingOrder && (
+        <RecordPaymentModal order={payingOrder} onCancel={() => setPayingOrder(null)} onSave={confirmPayment} />
+      )}
+    </React.Fragment>
+  );
+}
+
+/* ---------------- Reports page ---------------- */
+
+function ReportsPage({ orders, inventory, tables, summary, onNavigate }) {
+  const paidOrders = orders.filter(o => o.status === "Paid");
+  const totalRevenue = paidOrders.reduce((s, o) => s + o.total, 0);
+  const avgOrder = paidOrders.length ? Math.round(totalRevenue / paidOrders.length) : 0;
+  const lowStockItems = inventory.filter(i => stockStatus(i) !== "In Stock");
+
+  const methodTotals = PAYMENT_METHODS.map(m => ({
+    method: m,
+    total: paidOrders.filter(o => o.method === m).reduce((s, o) => s + o.total, 0),
+  }));
+  const maxMethod = Math.max(1, ...methodTotals.map(m => m.total));
+
+  const tableStatusCounts = TABLE_STATUS_CYCLE.map(s => ({
+    status: s, count: tables.filter(t => t.status === s).length,
+  }));
+  const maxTableCount = Math.max(1, ...tableStatusCounts.map(t => t.count));
+
+  const catData = (summary && summary.categoryUnitsSold) || [];
+  const maxCategory = Math.max(1, ...catData.map(c => c.sold));
+
+  return (
+    <React.Fragment>
+      <div className="page-head">
+        <div>
+          <h1>Reports</h1>
+          <p>A snapshot of sales, stock, and floor activity across Mahumbezi.</p>
+        </div>
+      </div>
+
+      <div className="kpi-grid">
+        <div className="kpi-card kpi-1">
+          <div className="kpi-icon">💰</div>
+          <div className="kpi-label">Total Revenue (Paid)</div>
+          <div className="kpi-value">{fmt(totalRevenue)}</div>
+        </div>
+        <div className="kpi-card kpi-2">
+          <div className="kpi-icon">🧾</div>
+          <div className="kpi-label">Orders Completed</div>
+          <div className="kpi-value">{paidOrders.length}</div>
+        </div>
+        <div className="kpi-card kpi-3">
+          <div className="kpi-icon">📊</div>
+          <div className="kpi-label">Average Order Value</div>
+          <div className="kpi-value">{fmt(avgOrder)}</div>
+        </div>
+        <div className="kpi-card kpi-4">
+          <div className="kpi-icon">📦</div>
+          <div className="kpi-label">Low Stock Alerts</div>
+          <div className="kpi-value">{lowStockItems.length}</div>
+          <div className="kpi-link" onClick={() => onNavigate("Inventory / Stock")}>View Details →</div>
+        </div>
+      </div>
+
+      <div className="row row-2">
+        <SalesChart data={summary && summary.salesByDay} />
+        <div className="panel">
+          <div className="panel-head">
+            <div className="panel-title">💳 Revenue by Payment Method</div>
+          </div>
+          {methodTotals.map(m => (
+            <div key={m.method} style={{ marginBottom: "14px" }}>
+              <div className="totals-row" style={{ padding: "0 0 4px" }}>
+                <span>{METHOD_ICON[m.method]} {m.method}</span>
+                <span style={{ color: "var(--text)", fontWeight: 700 }}>{fmt(m.total)}</span>
+              </div>
+              <div style={{ background: "#22262e", borderRadius: "999px", height: "6px", overflow: "hidden" }}>
+                <div style={{ width: (m.total / maxMethod * 100) + "%", height: "100%", background: "linear-gradient(90deg, var(--gold), var(--gold-dim))" }}></div>
+              </div>
+            </div>
+          ))}
+          <div className="panel-title" style={{ margin: "18px 0 10px", fontSize: "13px" }}>🍽️ Units Sold by Category</div>
+          {catData.map(c => (
+            <div key={c.category} style={{ marginBottom: "14px" }}>
+              <div className="totals-row" style={{ padding: "0 0 4px" }}>
+                <span>{c.category}</span>
+                <span style={{ color: "var(--text)", fontWeight: 700 }}>{c.sold} sold</span>
+              </div>
+              <div style={{ background: "#22262e", borderRadius: "999px", height: "6px", overflow: "hidden" }}>
+                <div style={{ width: (c.sold / maxCategory * 100) + "%", height: "100%", background: c.category === "Food" ? "var(--orange)" : "var(--blue)" }}></div>
+              </div>
+            </div>
+          ))}
+          {catData.length === 0 && (
+            <div className="cart-empty" style={{ padding: "10px 0" }}>No sales yet.</div>
+          )}
+        </div>
+      </div>
+
+      <div className="row row-2">
+        <TopMenuItems topSellers={summary && summary.topSellers} />
+        <div className="panel">
+          <div className="panel-head">
+            <div className="panel-title">🪑 Table Utilization</div>
+            <div className="panel-link" onClick={() => onNavigate("Tables")}>View All →</div>
+          </div>
+          {tableStatusCounts.map(t => (
+            <div key={t.status} style={{ marginBottom: "14px" }}>
+              <div className="totals-row" style={{ padding: "0 0 4px" }}>
+                <span>{t.status}</span>
+                <span style={{ color: "var(--text)", fontWeight: 700 }}>{t.count} of {tables.length}</span>
+              </div>
+              <div style={{ background: "#22262e", borderRadius: "999px", height: "6px", overflow: "hidden" }}>
+                <div className={"s-" + t.status.toLowerCase()} style={{
+                  width: (t.count / maxTableCount * 100) + "%", height: "100%",
+                  background: t.status === "Available" ? "var(--green)" : t.status === "Occupied" ? "var(--red)" : t.status === "Ordering" ? "var(--gold)" : "var(--text-faint)",
+                }}></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-head">
+          <div className="panel-title">📦 Low Stock Summary</div>
+          <div className="panel-link" onClick={() => onNavigate("Inventory / Stock")}>View All →</div>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Item</th><th>Category</th><th>Quantity</th><th>Reorder At</th><th>Status</th><th>Supplier</th></tr>
+          </thead>
+          <tbody>
+            {lowStockItems.map(i => (
+              <tr key={i.id}>
+                <td style={{ fontWeight: 600 }}>{i.name}</td>
+                <td><span className={"cat-pill " + (i.category === "Food" ? "cat-food" : "cat-drinks")}>{i.category}</span></td>
+                <td>{i.qty} {i.unit}</td>
+                <td className="id-cell">{i.reorder} {i.unit}</td>
+                <td><span className={stockPillClass(stockStatus(i))}>{stockStatus(i)}</span></td>
+                <td className="id-cell">{i.supplier}</td>
+              </tr>
+            ))}
+            {lowStockItems.length === 0 && (
+              <tr><td colSpan="6" style={{ textAlign: "center", color: "var(--text-faint)", padding: "20px 0" }}>Everything is well stocked. 🎉</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </React.Fragment>
+  );
+}
+
+/* ---------------- Employees / Users page ---------------- */
+
+const EMPTY_EMPLOYEE = { name: "", role: "Waiter", phone: "", email: "", shift: "Morning", status: "Active" };
+
+function EmployeeFormModal({ initial, onCancel, onSave }) {
+  const [form, setForm] = useState(initial);
+  const [password, setPassword] = useState("");
+  const isEdit = !!initial.id;
+  function update(field, value) { setForm(prev => ({ ...prev, [field]: value })); }
+  function submit() {
+    if (!form.name.trim() || !form.phone.trim()) return;
+    onSave({ ...form, password: password || undefined });
+  }
+  return (
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div className="modal-card" onClick={e => e.stopPropagation()}>
+        <div className="panel-title" style={{ marginBottom: "16px" }}>{isEdit ? "Edit Employee" : "Add Employee"}</div>
+
+        <label className="field-label">Full Name</label>
+        <input className="table-select" value={form.name} onChange={e => update("name", e.target.value)} placeholder="e.g. Divine Iradukunda" />
+
+        <label className="field-label">Role</label>
+        <select className="table-select" value={form.role} onChange={e => update("role", e.target.value)}>
+          {EMPLOYEE_ROLES.filter(r => r !== "All").map(r => <option key={r}>{r}</option>)}
+        </select>
+
+        <label className="field-label">Phone</label>
+        <input className="table-select" value={form.phone} onChange={e => update("phone", e.target.value)} placeholder="+250 78..." />
+
+        <label className="field-label">Email (optional)</label>
+        <input className="table-select" value={form.email || ""} onChange={e => update("email", e.target.value)} placeholder="name@mahumbezi.rw" />
+
+        <div style={{ display: "flex", gap: "10px" }}>
+          <div style={{ flex: 1 }}>
+            <label className="field-label">Shift</label>
+            <select className="table-select" value={form.shift} onChange={e => update("shift", e.target.value)}>
+              {SHIFTS.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div style={{ flex: 1 }}>
+            <label className="field-label">Status</label>
+            <select className="table-select" value={form.status} onChange={e => update("status", e.target.value)}>
+              {EMPLOYEE_STATUSES.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {isEdit && (
+          <>
+            <label className="field-label">New Password</label>
+            <input className="table-select" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Leave blank to keep current" />
+          </>
+        )}
+
+        <div className="modal-actions">
+          <button className="btn-secondary" onClick={onCancel}>Cancel</button>
+          <button className="place-order-btn" style={{ marginTop: 0 }} onClick={submit}>{isEdit ? "Save Changes" : "Add Employee"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmployeesPage({ employees, reload, currentUser }) {
+  const [role, setRole] = useState("All");
+  const [query, setQuery] = useState("");
+  const [modalEmployee, setModalEmployee] = useState(null);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const filtered = employees.filter(e =>
+    (role === "All" || e.role === role) &&
+    e.name.toLowerCase().includes(query.toLowerCase())
+  );
+  const activeCount = employees.filter(e => e.status === "Active").length;
+  const canManage = currentUser && (currentUser.role === "Admin" || currentUser.role === "Manager");
+
+  async function deleteEmployee(id) {
+    try { await api.deleteEmployee(id); await reload(); }
+    catch (err) { setError(err.message); }
+  }
+  async function saveEmployee(data) {
+    try {
+      const payload = { name: data.name, email: data.email, role: data.role, phone: data.phone, shift: data.shift, status: data.status, password: data.password };
+      if (data.id) {
+        await api.updateEmployee(data.id, payload);
+      } else {
+        const created = await api.createEmployee(payload);
+        if (created && created.tempPassword) {
+          setNotice(`${data.name}'s temporary password is: ${created.tempPassword} — share it with them securely.`);
+        }
+      }
+      await reload();
+      setModalEmployee(null);
+    } catch (err) { setError(err.message); }
+  }
+
+  return (
+    <React.Fragment>
+      <div className="page-head">
+        <div>
+          <h1>Employees / Users</h1>
+          <p>{employees.length} staff on file · {activeCount} currently active</p>
+        </div>
+        <button className="place-order-btn" style={{ width: "auto", marginTop: 0, padding: "11px 18px" }} onClick={() => setModalEmployee({ ...EMPTY_EMPLOYEE })} disabled={!canManage}>
+          + Add Employee
+        </button>
+      </div>
+
+      {!canManage && <div className="toast" style={{ background: "rgba(224,172,58,0.14)", color: "var(--gold)", maxWidth: "420px" }}>Only Admins and Managers can add, edit, or remove staff accounts.</div>}
+      {error && <div className="toast" style={{ background: "var(--red-bg)", color: "var(--red)", maxWidth: "320px" }}>{error}</div>}
+      {notice && <div className="toast" style={{ maxWidth: "420px" }}>{notice}</div>}
+
+      <div className="panel">
+        <div className="panel-head">
+          <div className="cat-tabs" style={{ marginBottom: 0, flexWrap: "wrap" }}>
+            {EMPLOYEE_ROLES.map(r => (
+              <button key={r} className={"cat-tab" + (role === r ? " active" : "")} onClick={() => setRole(r)}>{r}</button>
+            ))}
+          </div>
+          <div className="search" style={{ maxWidth: "220px", marginLeft: "auto" }}>
+            🔍<input placeholder="Search staff..." value={query} onChange={e => setQuery(e.target.value)} />
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Role</th><th>Phone</th><th>Shift</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody>
+            {filtered.map(e => (
+              <tr key={e.id}>
+                <td style={{ display: "flex", alignItems: "center", gap: "10px", fontWeight: 600 }}>
+                  <span className="avatar" style={{ width: "28px", height: "28px", fontSize: "12px" }}>
+                    {e.name.split(" ").map(n => n[0]).slice(0, 2).join("")}
+                  </span>
+                  {e.name}
+                </td>
+                <td><span className={rolePillClass(e.role)}>{e.role}</span></td>
+                <td className="id-cell">{e.phone}</td>
+                <td className="id-cell">{e.shift}</td>
+                <td><span className={employeeStatusPillClass(e.status)}>{e.status}</span></td>
+                <td>
+                  <div className="fm-actions">
+                    <button className="icon-btn" title="Edit" onClick={() => setModalEmployee(e)} disabled={!canManage}>✏️</button>
+                    <button className="icon-btn danger" title="Delete" onClick={() => deleteEmployee(e.id)} disabled={!canManage}>🗑️</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {filtered.length === 0 && (
+              <tr><td colSpan="6" style={{ textAlign: "center", color: "var(--text-faint)", padding: "20px 0" }}>No staff match your filters.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {modalEmployee && (
+        <EmployeeFormModal initial={modalEmployee} onCancel={() => setModalEmployee(null)} onSave={saveEmployee} />
+      )}
+    </React.Fragment>
+  );
+}
+
+/* ---------------- Settings page ---------------- */
+
+function SettingsPage({ settings, vatRate, reload, currentUser }) {
+  const [form, setForm] = useState(settings);
+  const [vat, setVat] = useState(vatRate);
+  const [notifs, setNotifs] = useState({ lowStock: true, newOrders: true, dailySummary: false });
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+
+  function update(field, value) { setForm(prev => ({ ...prev, [field]: value })); }
+  function toggleNotif(key) { setNotifs(prev => ({ ...prev, [key]: !prev[key] })); }
+
+  const [pw, setPw] = useState({ current: "", next: "" });
+  const [pwMsg, setPwMsg] = useState("");
+  async function changePassword() {
+    if (!pw.current || !pw.next) {
+      setPwMsg("Enter your current and new password.");
+      return;
+    }
+    try {
+      await api.changePassword({ currentPassword: pw.current, newPassword: pw.next });
+      setPw({ current: "", next: "" });
+      setPwMsg("✓ Password updated");
+      setTimeout(() => setPwMsg(""), 2500);
+    } catch (err) { setPwMsg(err.message); }
+  }
+
+  async function save() {
+    try {
+      await api.updateSettings({
+        restaurantName: form.restaurantName,
+        address: form.address,
+        phone: form.phone,
+        currency: form.currency,
+        vatRate: Number(vat) || 0,
+      });
+      await reload();
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) { setError(err.message); }
+  }
+
+  return (
+    <React.Fragment>
+      <div className="page-head">
+        <div>
+          <h1>Settings</h1>
+          <p>Restaurant profile, billing, and notification preferences.</p>
+        </div>
+      </div>
+      {error && <div className="toast" style={{ background: "var(--red-bg)", color: "var(--red)", maxWidth: "320px" }}>{error}</div>}
+
+      <div className="row row-2">
+        <div className="panel">
+          <div className="panel-head"><div className="panel-title">🏪 Restaurant Profile</div></div>
+          <label className="field-label">Restaurant Name</label>
+          <input className="table-select" value={form.restaurantName} onChange={e => update("restaurantName", e.target.value)} />
+          <label className="field-label">Address</label>
+          <input className="table-select" value={form.address} onChange={e => update("address", e.target.value)} />
+          <div style={{ display: "flex", gap: "10px" }}>
+            <div style={{ flex: 1 }}>
+              <label className="field-label">Phone</label>
+              <input className="table-select" value={form.phone} onChange={e => update("phone", e.target.value)} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label className="field-label">Currency</label>
+              <select className="table-select" value={form.currency} onChange={e => update("currency", e.target.value)}>
+                <option value="RWF">RWF — Rwandan Franc</option>
+                <option value="USD">USD — US Dollar</option>
+                <option value="EUR">EUR — Euro</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="panel-title" style={{ fontSize: "13px", margin: "18px 0 10px" }}>💳 Billing</div>
+          <label className="field-label">VAT / Tax Rate (%)</label>
+          <input className="table-select" type="number" value={vat} onChange={e => setVat(e.target.value)} />
+          <p style={{ fontSize: "11.5px", color: "var(--text-faint)", margin: "-4px 0 0" }}>
+            Applied automatically to every order in Orders / POS.
+          </p>
+        </div>
+
+        <div className="panel">
+          <div className="panel-head"><div className="panel-title">👤 Account</div></div>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "18px" }}>
+            <div className="avatar" style={{ width: "44px", height: "44px", fontSize: "20px" }}>🧑🏾</div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "14px" }}>{currentUser ? currentUser.name + " (" + currentUser.role + ")" : "—"}</div>
+              <div className="profile-status"><span className="dot"></span>Online</div>
+            </div>
+          </div>
+
+          <div className="panel-title" style={{ fontSize: "13px", margin: "0 0 10px" }}>🔐 Change Password</div>
+          <label className="field-label">Current Password</label>
+          <input className="table-select" type="password" value={pw.current} onChange={e => setPw(prev => ({ ...prev, current: e.target.value }))} />
+          <label className="field-label">New Password</label>
+          <input className="table-select" type="password" value={pw.next} onChange={e => setPw(prev => ({ ...prev, next: e.target.value }))} />
+          <button className="btn-secondary" style={{ marginTop: "12px", width: "100%" }} onClick={changePassword}>Update Password</button>
+          {pwMsg && <div className="toast" style={{ marginTop: "10px" }}>{pwMsg}</div>}
+
+          <div className="panel-title" style={{ fontSize: "13px", margin: "18px 0 10px" }}>🔔 Notifications</div>
+          <label className="field-label" style={{ marginBottom: "12px" }}>
+            <span className="toggle-inline">
+              <span className={"toggle" + (notifs.lowStock ? " on" : "")} onClick={() => toggleNotif("lowStock")}><span className="toggle-knob"></span></span>
+              {" "}Low stock alerts
+            </span>
+          </label>
+          <label className="field-label" style={{ marginBottom: "12px" }}>
+            <span className="toggle-inline">
+              <span className={"toggle" + (notifs.newOrders ? " on" : "")} onClick={() => toggleNotif("newOrders")}><span className="toggle-knob"></span></span>
+              {" "}New order notifications
+            </span>
+          </label>
+          <label className="field-label">
+            <span className="toggle-inline">
+              <span className={"toggle" + (notifs.dailySummary ? " on" : "")} onClick={() => toggleNotif("dailySummary")}><span className="toggle-knob"></span></span>
+              {" "}Daily sales summary email
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <button className="place-order-btn" style={{ width: "auto", padding: "11px 24px" }} onClick={save}>Save Changes</button>
+      {saved && <div className="toast" style={{ maxWidth: "260px" }}>✓ Settings saved</div>}
+    </React.Fragment>
+  );
+}
+
+/* ---------------- Login ---------------- */
+
+const LOGIN_FEATURES = [
+  { icon: "🛡️", label: "Secure Access" },
+  { icon: "⚡", label: "Fast Performance" },
+  { icon: "📊", label: "Real-time Tracking" },
+  { icon: "🎧", label: "24/7 Support" },
+];
+
+function LoginScreen({ onLoggedIn }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(true);
+  const [error, setError] = useState("");
+  const [note, setNote] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function submit(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!email.trim() || !password) {
+      setError("Enter your email and password.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setNote("");
+    try {
+      const result = await api.login(email.trim(), password);
+      onLoggedIn(result.token, result.refreshToken, result.user, remember);
+    } catch (err) {
+      setError(err.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function showForgotNote(e) {
+    e.preventDefault();
+    setError("");
+    setNote("Ask an Admin to reset your password from Employees / Users — there's no self-service reset yet.");
+  }
+  function showSocialNote(provider) {
+    setError("");
+    setNote(`Signing in with ${provider} isn't set up for this restaurant yet — use your email and password below.`);
+  }
+
+  return (
+    <div className="login-wrap">
+      <div className="login-bg"></div>
+      <div className="login-grid">
+        {/* Left: brand + marketing panel */}
+        <div>
+          <div className="login-brandbar">
+            <img src="/assets/logo.png" alt="Mahumbezi" />
+            <div>
+              <div className="lb-name">MAHUMBEZI</div>
+              <div className="lb-sub">BAR &amp; RESTAURANT</div>
+            </div>
+          </div>
+
+          <div className="login-eyebrow"><span className="rule"></span>WELCOME BACK</div>
+          <h1 className="login-heading">
+            Sign in to your
+            <span className="gold">Mahumbezi Account</span>
+          </h1>
+          <p className="login-copy">
+            Manage orders, track sales, and keep your restaurant running smoothly — all in one place.
+          </p>
+
+          <div className="login-features">
+            {LOGIN_FEATURES.map(f => (
+              <div className="login-feature" key={f.label}>
+                <span className="lf-icon">{f.icon}</span>
+                <span className="lf-label">{f.label}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="login-tagline">
+            <span className="rule"></span>
+            👑 Good Food &nbsp;•&nbsp; Great Drinks &nbsp;•&nbsp; Happy People
+            <span className="rule right"></span>
+          </div>
+        </div>
+
+        {/* Right: sign-in card */}
+        <div className="login-card">
+          <div className="login-card-brand">
+            <img src="/assets/logo.png" alt="Mahumbezi" />
+            <div className="lcb-name">MAHUMBEZI</div>
+            <div className="lcb-sub">BAR &amp; RESTAURANT</div>
+          </div>
+
+          <div className="login-title">Login to Your Account</div>
+          <div className="login-sub">Enter your credentials to access your dashboard.</div>
+
+          {error && <div className="login-error">{error}</div>}
+          {!error && note && <div className="login-note">{note}</div>}
+
+          <form onSubmit={submit}>
+            <label className="field-label" htmlFor="login-email">Email or Username</label>
+            <div className="login-input-group">
+              <span className="li-icon" aria-hidden="true">✉️</span>
+              <input id="login-email" name="email" type="email" autoFocus value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your email or username" autocomplete="email" />
+            </div>
+
+            <label className="field-label" htmlFor="login-password">Password</label>
+            <div className="login-input-group">
+              <span className="li-icon" aria-hidden="true">🔒</span>
+              <input id="login-password" name="password" type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" autocomplete="current-password" />
+              <button type="button" className="li-toggle" onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? "Hide password" : "Show password"}>
+                {showPassword ? "🙈" : "👁️"}
+              </button>
+            </div>
+
+            <div className="login-row">
+              <label className="login-remember">
+                <input id="login-remember" name="remember" type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)} />
+                Remember me
+              </label>
+              <button type="button" className="login-forgot" onClick={showForgotNote}>Forgot password?</button>
+            </div>
+
+            <button type="submit" className="login-submit" disabled={loading}>
+              {loading ? "Signing in…" : <React.Fragment>👤 Sign In →</React.Fragment>}
+            </button>
+          </form>
+
+          <div className="login-divider"><span className="rule"></span>OR<span className="rule"></span></div>
+
+          <button type="button" className="login-social" onClick={() => showSocialNote("Google")}>
+            <span>🔵</span> Continue with Google
+          </button>
+          <button type="button" className="login-social" onClick={() => showSocialNote("Facebook")}>
+            <span>🔷</span> Continue with Facebook
+          </button>
+
+          <div className="login-footer">
+            Need an account? Ask your manager to add you from Employees / Users.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [token, setToken] = useState(() => { try { return activeStorage ? activeStorage.getItem(TOKEN_KEY) : null; } catch (e) { return null; } });
+  const [currentUser, setCurrentUser] = useState(() => {
+    try { const raw = activeStorage ? activeStorage.getItem(USER_KEY) : null; return raw ? JSON.parse(raw) : null; }
+    catch (e) { return null; }
+  });
+  const [page, setPage] = useState("Dashboard");
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  const [orders, setOrders] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
+  const [tables, setTables] = useState([]);
+  const [inventory, setInventory] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [settings, setSettings] = useState({
+    restaurantName: "Mahumbezi Bar & Restaurant",
+    address: "",
+    phone: "",
+    currency: "RWF",
+  });
+  const [vatRate, setVatRate] = useState(18);
+
+  // Keep the module-level auth token (used by every api.* call) in sync with React state
+  useEffect(() => { authToken = token; }, [token]);
+
+  const loadAll = React.useCallback(() => {
+    if (!token) return Promise.resolve();
+    return Promise.all([
+      api.getMenuItems(), api.getTables(), api.getOrders(), api.getInventory(),
+      api.getCustomers(), api.getSuppliers(), api.getEmployees(), api.getSettings(),
+      api.getReportsSummary(),
+    ]).then(([mi, tb, ord, inv, cus, sup, emp, set, rep]) => {
+      setMenuItems(mi.map(mapMenuItem));
+      setTables(tb.map(mapTable));
+      setOrders(ord.map(mapOrder));
+      setInventory(inv.map(mapInventory));
+      setCustomers(cus.map(mapCustomer));
+      setSuppliers(sup.map(mapSupplier));
+      setEmployees(emp.map(mapEmployee));
+      const s = mapSettings(set);
+      setSettings(s);
+      setVatRate(s.vatRate);
+      setSummary(rep);
+      setLoadError("");
+    });
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) { setLoading(false); return; }
+    let cancelled = false;
+    setLoading(true);
+    loadAll()
+      .catch((err) => { if (!cancelled) setLoadError(err.message || "Failed to load data from the server."); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [token, loadAll]);
+
+  function handleLoggedIn(tok, refresh, user, remember) {
+    const store = remember ? window.localStorage : window.sessionStorage;
+    storeSession(store, { token: tok, refreshToken: refresh, user });
+    authToken = tok;
+    authRefresh = refresh || null;
+    setToken(tok);
+    setCurrentUser(user);
+  }
+  function handleLogout() {
+    if (authRefresh) {
+      api.logout(authRefresh).catch(() => {}); // best-effort — clear local state regardless
+    }
+    forceLogout();
+    setToken(null);
+    setCurrentUser(null);
+    setPage("Dashboard");
+  }
+
+  // React to auto-refresh (role/user updates) and forced logout (expired refresh token)
+  useEffect(() => {
+    const onToken = (e) => { if (e.detail && e.detail.user) setCurrentUser(e.detail.user); };
+    const onLogout = () => { setToken(null); setCurrentUser(null); setPage("Dashboard"); };
+    window.addEventListener("mahumbezi:token", onToken);
+    window.addEventListener("mahumbezi:logout", onLogout);
+    return () => {
+      window.removeEventListener("mahumbezi:token", onToken);
+      window.removeEventListener("mahumbezi:logout", onLogout);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (!token) {
+    return <LoginScreen onLoggedIn={handleLoggedIn} />;
+  }
+
+  if (loading) {
+    return <div className="app-loading">Loading Mahumbezi…</div>;
+  }
+
+  const KNOWN_PAGES = ["Dashboard", "Orders / POS", "Food & Menu", "Tables", "Inventory / Stock", "Customers", "Suppliers", "Sales & Payments", "Reports", "Employees / Users", "Settings"];
+
+  return (
+    <div className="layout">
+      <Sidebar page={page} onNavigate={setPage} />
+      <div className="main">
+        <Topbar user={currentUser} onLogout={handleLogout} data={{ menuItems, tables, orders, inventory, customers, suppliers, employees }} onNavigate={setPage} />
+        <main className="content">
+          {loadError && (
+            <div className="toast" style={{ background: "var(--red-bg)", color: "var(--red)", maxWidth: "480px", marginBottom: "16px" }}>
+              Couldn't reach the server: {loadError}
+            </div>
+          )}
+          {page === "Dashboard" && <Dashboard orders={orders} tables={tables} inventory={inventory} summary={summary} onNavigate={setPage} user={currentUser} />}
+          {page === "Orders / POS" && <OrdersPOS orders={orders} menuItems={menuItems} tables={tables} vatRate={vatRate} reload={loadAll} />}
+          {page === "Food & Menu" && <FoodMenu menuItems={menuItems} reload={loadAll} />}
+          {page === "Tables" && <TablesPage tables={tables} orders={orders} reload={loadAll} />}
+          {page === "Inventory / Stock" && <InventoryPage inventory={inventory} reload={loadAll} />}
+          {page === "Customers" && <CustomersPage customers={customers} reload={loadAll} />}
+          {page === "Suppliers" && <SuppliersPage suppliers={suppliers} reload={loadAll} />}
+          {page === "Sales & Payments" && <SalesPayments orders={orders} reload={loadAll} />}
+          {page === "Reports" && <ReportsPage orders={orders} inventory={inventory} tables={tables} summary={summary} onNavigate={setPage} />}
+          {page === "Employees / Users" && <EmployeesPage employees={employees} reload={loadAll} currentUser={currentUser} />}
+          {page === "Settings" && <SettingsPage settings={settings} vatRate={vatRate} reload={loadAll} currentUser={currentUser} />}
+          {!KNOWN_PAGES.includes(page) && (
+            <div className="panel" style={{ textAlign: "center", padding: "60px 20px", color: "var(--text-dim)" }}>
+              <div style={{ fontSize: "28px", marginBottom: "10px" }}>🚧</div>
+              <div style={{ fontWeight: 700, marginBottom: "4px" }}>{page}</div>
+              <div style={{ fontSize: "12.5px" }}>This page hasn't been built yet — ask to build it next.</div>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
