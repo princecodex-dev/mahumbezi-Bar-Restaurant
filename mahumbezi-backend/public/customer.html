@@ -1,0 +1,1754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Mahumbezi Bar &amp; Restaurant — Order</title>
+
+<!-- PWA Manifest (customer-specific: installs open the ordering app) -->
+<link rel="manifest" href="/customer.webmanifest" />
+
+<!-- PWA Meta Tags -->
+<meta name="theme-color" content="#0c0e12" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Mahumbezi" />
+<meta name="description" content="Order food and drinks from Mahumbezi Bar & Restaurant." />
+
+<!-- Apple Touch Icons -->
+<link rel="apple-touch-icon" href="/assets/icons/icon-192x192.png" />
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/icon-192x192.png" />
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="/assets/favicon.png?v=2" />
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0c0e12;
+    --panel: #14171d;
+    --panel-2: #1a1e26;
+    --border: #262b34;
+    --text: #eef0f3;
+    --text-dim: #b8bcc8;
+    --text-faint: #7b8496;
+    --gold: #e0ac3a;
+    --gold-bright: #eec257;
+    --gold-dim: #ad8635;
+    --gold-soft: rgba(224, 172, 58, 0.14);
+    --green: #2ecc71;
+    --green-bg: #12291f;
+    --blue: #4a9eff;
+    --blue-bg: #10233a;
+    --orange: #cf7a2b;
+    --orange-bg: #2c2013;
+    --teal: #35c8d0;
+    --teal-bg: #0f2b2e;
+    --purple: #7c5bd6;
+    --purple-bg: #211a34;
+    --red: #ff6b6b;
+    --red-bg: #331919;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); }
+  body {
+    color: var(--text);
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+  }
+  #root { min-height: 100vh; }
+  a, button, select, input, textarea { font-family: inherit; }
+  button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+  ::-webkit-scrollbar { width: 7px; height: 7px; }
+  ::-webkit-scrollbar-thumb { background: #2a2f38; border-radius: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  .shell {
+    max-width: 860px;
+    margin: 0 auto;
+    min-height: 100vh;
+    position: relative;
+    border-left: 1px solid transparent;
+    border-right: 1px solid transparent;
+  }
+  @media (min-width: 862px) {
+    .shell { border-left-color: var(--border); border-right-color: var(--border); }
+  }
+
+  /* ---------- Header ---------- */
+  .hdr {
+    position: sticky; top: 0; z-index: 40;
+    display: grid; grid-template-columns: 42px 1fr 42px; align-items: center;
+    padding: 12px 14px;
+    background: rgba(12, 14, 18, 0.93);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .hdr-brand { display: flex; align-items: center; justify-content: center; gap: 9px; cursor: pointer; }
+  .hdr-brand img { width: 32px; height: 32px; object-fit: contain; }
+  .hdr-brand .bt { font-size: 13.5px; font-weight: 800; letter-spacing: 0.14em; line-height: 1.1; }
+  .hdr-brand .bs { font-size: 8px; letter-spacing: 0.3em; color: var(--text-faint); line-height: 1.4; }
+  .iconbtn {
+    width: 40px; height: 40px; border-radius: 11px;
+    background: var(--panel); border: 1px solid var(--border);
+    color: var(--text); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; padding: 0;
+  }
+  .iconbtn:hover { border-color: var(--gold-dim); }
+  .badge {
+    position: absolute; top: -6px; right: -6px;
+    min-width: 18px; height: 18px; padding: 0 5px;
+    border-radius: 9px; background: var(--gold); color: #14100a;
+    font-size: 10px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--bg);
+  }
+
+  /* ---------- Page scaffolding ---------- */
+  .page { padding: 18px 16px 108px; }
+  .page-title { font-size: 22px; font-weight: 800; margin: 4px 0 4px; }
+  .page-sub { font-size: 13px; color: var(--text-dim); margin: 0 0 4px; line-height: 1.5; }
+  .sec { display: flex; align-items: baseline; justify-content: space-between; margin: 24px 0 12px; }
+  .sec h2 { font-size: 16.5px; font-weight: 800; margin: 0; }
+  .sec .link { color: var(--gold); font-size: 12.5px; font-weight: 700; text-decoration: none; cursor: pointer; background: none; border: none; padding: 0; }
+  .empty {
+    text-align: center; padding: 48px 20px; color: var(--text-faint);
+    background: var(--panel); border: 1px dashed var(--border); border-radius: 16px;
+  }
+  .empty .big { font-size: 38px; display: block; margin-bottom: 10px; }
+  .empty p { margin: 4px 0 16px; font-size: 13px; }
+  .load { text-align: center; padding: 60px 0; color: var(--text-faint); font-size: 13px; }
+  .err { background: var(--red-bg); color: var(--red); font-size: 12.5px; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 13px 20px; border-radius: 13px; font-size: 14px; font-weight: 700;
+    border: 1px solid var(--border); background: var(--panel-2); color: var(--text);
+    cursor: pointer; text-decoration: none; transition: border-color .15s, transform .1s;
+  }
+  .btn:hover { border-color: var(--gold-dim); }
+  .btn:active { transform: scale(0.98); }
+  .btn-gold {
+    background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+    border-color: transparent; color: #191203;
+    box-shadow: 0 8px 24px rgba(224, 172, 58, 0.22);
+  }
+  .btn-gold:hover { border-color: transparent; filter: brightness(1.05); }
+  .btn-block { width: 100%; }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+  /* ---------- Hero (home) ---------- */
+  .hero {
+    position: relative; border-radius: 20px; overflow: hidden;
+    min-height: 250px; display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 24px 22px;
+    background: #10131a url("/assets/login-bg.jpg") center 30% / cover no-repeat;
+    border: 1px solid var(--border);
+  }
+  .hero::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(8, 9, 12, 0.32) 0%, rgba(8, 9, 12, 0.62) 45%, rgba(8, 9, 12, 0.93) 100%);
+  }
+  .hero > * { position: relative; z-index: 1; }
+  .hero .eyebrow { font-size: 10px; letter-spacing: 0.34em; color: var(--gold); font-weight: 700; }
+  .hero h1 {
+    font-family: Georgia, "Times New Roman", serif; font-style: italic; font-weight: 500;
+    font-size: clamp(27px, 6vw, 40px); color: var(--gold-bright);
+    margin: 10px 0 12px; line-height: 1.14; text-shadow: 0 2px 18px rgba(0,0,0,.5);
+  }
+  .hero .chips { display: flex; gap: 7px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-dim); }
+  .hero .chip { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); padding: 6px 12px; border-radius: 999px; }
+
+  /* ---------- Search + categories ---------- */
+  .search {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 13px;
+    padding: 12px 15px; color: var(--text-faint); margin-top: 16px;
+  }
+  .search:focus-within { border-color: var(--gold-dim); }
+  .search input { flex: 1; min-width: 0; background: none; border: none; outline: none; color: var(--text); font-size: 13.5px; }
+  .search input::placeholder { color: var(--text-faint); }
+  .search .clr { background: none; border: none; color: var(--text-faint); cursor: pointer; padding: 2px; display: flex; }
+
+  .cats { display: flex; gap: 8px; overflow-x: auto; padding: 16px 0 6px; scrollbar-width: none; }
+  .cats::-webkit-scrollbar { display: none; }
+  .cat {
+    flex-shrink: 0; padding: 8px 17px; border-radius: 999px;
+    background: var(--panel); border: 1px solid var(--border);
+    color: var(--text-dim); font-size: 12.5px; font-weight: 700; cursor: pointer;
+    transition: all .15s;
+  }
+  .cat:hover { border-color: var(--gold-dim); }
+  .cat.on { background: var(--gold); border-color: var(--gold); color: #14100a; }
+
+  /* ---------- Product cards ---------- */
+  .hscroll { display: flex; gap: 13px; overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x proximity; }
+  .hscroll::-webkit-scrollbar { height: 6px; }
+  .pcard {
+    flex: 0 0 210px; scroll-snap-align: start;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 18px;
+    padding: 12px; cursor: pointer; transition: border-color .15s, transform .15s;
+    text-align: left; color: inherit; font: inherit;
+  }
+  .pcard:hover { border-color: var(--gold-dim); transform: translateY(-2px); }
+  .thumb {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 46px; position: relative; overflow: hidden; user-select: none;
+    background: linear-gradient(140deg, #23252e, #1a1e26);
+  }
+  .thumb.food { background: linear-gradient(140deg, #3a2a14, #1c1e26); }
+  .thumb.drinks { background: linear-gradient(140deg, #12313a, #1c1e26); }
+  .thumb.bar { background: linear-gradient(140deg, #2a1a3a, #1c1e26); }
+  .thumb::after {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.09), transparent 60%);
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; position: relative; z-index: 1; }
+  .pcard .thumb { height: 120px; border-radius: 13px; }
+  .pcard h3 { font-size: 13.5px; font-weight: 700; margin: 11px 0 4px; }
+  .pcard .desc {
+    font-size: 11.5px; color: var(--text-faint); line-height: 1.45;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    min-height: 33px; margin: 0;
+  }
+  .prow { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; gap: 8px; }
+  .price { color: var(--gold); font-weight: 800; font-size: 14.5px; white-space: nowrap; }
+  .price small { display: block; font-size: 9.5px; color: var(--text-faint); font-weight: 600; }
+  .addbtn {
+    width: 34px; height: 34px; border-radius: 11px; flex-shrink: 0;
+    background: var(--gold); color: #14100a; border: none; padding: 0;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: transform .1s, filter .15s;
+  }
+  .addbtn:hover { filter: brightness(1.08); }
+  .addbtn:active { transform: scale(0.9); }
+
+  /* menu list rows */
+  .mcard {
+    display: flex; gap: 13px; align-items: center;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 17px;
+    padding: 13px; margin-bottom: 12px; cursor: pointer; width: 100%;
+    text-align: left; color: inherit; font: inherit; transition: border-color .15s;
+  }
+  .mcard:hover { border-color: var(--gold-dim); }
+  .mcard .thumb { width: 74px; height: 74px; flex-shrink: 0; font-size: 30px; border-radius: 13px; }
+  .mcard .info { flex: 1; min-width: 0; }
+  .mcard h3 { font-size: 14px; font-weight: 700; margin: 0 0 4px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .mcard .desc {
+    font-size: 11.5px; color: var(--text-faint); line-height: 1.45; margin: 0;
+    display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .tag { font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: var(--panel-2); color: var(--text-faint); border: 1px solid var(--border); }
+  .tag.food { background: var(--orange-bg); color: var(--orange); border-color: transparent; }
+  .tag.drinks { background: var(--blue-bg); color: var(--blue); border-color: transparent; }
+  .tag.bar { background: var(--purple-bg); color: var(--purple); border-color: transparent; }
+  .mcard .side { display: flex; flex-direction: column; align-items: flex-end; gap: 9px; flex-shrink: 0; }
+
+  /* ---------- Product detail ---------- */
+  .pd-top { display: flex; gap: 16px; align-items: flex-start; }
+  .pd-hero { width: 138px; height: 138px; flex-shrink: 0; border-radius: 20px; font-size: 62px; border: 1px solid var(--border); }
+  .pd-info { flex: 1; min-width: 0; padding-top: 4px; }
+  .pd-info h1 { font-size: 20px; font-weight: 800; margin: 8px 0 8px; line-height: 1.25; }
+  .pd-price { color: var(--gold); font-size: 21px; font-weight: 800; }
+  .pd-desc { font-size: 13.5px; color: var(--text-dim); line-height: 1.65; margin: 18px 0 0; }
+  .meta-row { display: flex; gap: 10px; margin-top: 18px; }
+  .meta {
+    flex: 1; background: var(--panel); border: 1px solid var(--border); border-radius: 13px;
+    padding: 11px 13px; display: flex; align-items: center; gap: 10px;
+    font-size: 12px; color: var(--text-dim);
+  }
+  .meta strong { display: block; color: var(--text); font-size: 12.5px; margin-top: 1px; }
+  .meta .mi { color: var(--gold); display: flex; }
+  .buy-row { display: flex; gap: 12px; align-items: stretch; margin-top: 20px; }
+  .qty {
+    display: flex; align-items: center; gap: 4px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 13px; padding: 5px;
+  }
+  .qty button {
+    width: 38px; height: 42px; border-radius: 10px; background: var(--panel-2);
+    border: 1px solid var(--border); color: var(--text); cursor: pointer; font-size: 17px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .qty button:hover { border-color: var(--gold-dim); }
+  .qty .n { min-width: 34px; text-align: center; font-weight: 800; font-size: 15px; }
+  .tabs { display: flex; gap: 8px; margin-top: 24px; border-bottom: 1px solid var(--border); }
+  .tabs button {
+    background: none; border: none; color: var(--text-faint); font-size: 13px; font-weight: 700;
+    padding: 10px 4px 12px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .tabs button.on { color: var(--gold); border-bottom-color: var(--gold); }
+  .tab-body { font-size: 13px; color: var(--text-dim); line-height: 1.7; padding: 16px 0 0; }
+  .tab-body ul { margin: 0; padding-left: 18px; }
+  .tab-body li { margin-bottom: 5px; }
+
+  /* ---------- Cart ---------- */
+  .cart-row {
+    display: flex; gap: 13px; align-items: center;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+    padding: 13px; margin-bottom: 12px;
+  }
+  .cart-row .thumb { width: 58px; height: 58px; flex-shrink: 0; font-size: 25px; border-radius: 12px; }
+  .cart-row .info { flex: 1; min-width: 0; }
+  .cart-row h3 { font-size: 13.5px; margin: 0 0 3px; font-weight: 700; }
+  .cart-row .price { font-size: 13px; }
+  .mini-qty { display: flex; align-items: center; gap: 9px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 4px 6px; }
+  .mini-qty button { width: 26px; height: 26px; border-radius: 7px; background: var(--panel); border: 1px solid var(--border); color: var(--text); cursor: pointer; font-size: 14px; padding: 0; display: flex; align-items: center; justify-content: center; }
+  .mini-qty .n { font-size: 13px; font-weight: 800; min-width: 18px; text-align: center; }
+  .rm {
+    background: none; border: none; color: var(--text-faint); cursor: pointer;
+    padding: 6px; display: flex; border-radius: 8px;
+  }
+  .rm:hover { color: var(--red); background: var(--red-bg); }
+  .totals { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-top: 18px; }
+  .total-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-dim); padding: 6px 0; }
+  .total-row.grand { border-top: 1px solid var(--border); margin-top: 8px; padding-top: 13px; font-size: 15.5px; font-weight: 800; color: var(--text); }
+  .total-row.grand span:last-child { color: var(--gold); }
+
+  /* ---------- Checkout ---------- */
+  .form-label { font-size: 12px; font-weight: 800; color: var(--text-dim); margin: 20px 0 9px; letter-spacing: 0.03em; }
+  .field {
+    display: flex; align-items: center; gap: 11px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 13px;
+    padding: 13px 15px; margin-bottom: 11px; color: var(--text-faint);
+  }
+  .field:focus-within { border-color: var(--gold-dim); }
+  .field.bad { border-color: var(--red); }
+  .field input, .field select {
+    flex: 1; min-width: 0; background: none; border: none; outline: none;
+    color: var(--text); font-size: 14px;
+  }
+  .field select { cursor: pointer; appearance: auto; }
+  .field select option { background: var(--panel-2); color: var(--text); }
+  .field input::placeholder { color: var(--text-faint); }
+  .hint { font-size: 11.5px; color: var(--text-faint); margin: -4px 0 0; }
+  .opt {
+    display: flex; gap: 12px; align-items: center;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 13px;
+    padding: 14px 15px; margin-bottom: 10px; cursor: pointer; width: 100%;
+    text-align: left; color: inherit; transition: border-color .15s, background .15s;
+  }
+  .opt.on { border-color: var(--gold); background: rgba(224, 172, 58, 0.06); }
+  .opt .radio {
+    width: 19px; height: 19px; border-radius: 50%; flex-shrink: 0;
+    border: 2px solid var(--text-faint); display: flex; align-items: center; justify-content: center;
+  }
+  .opt.on .radio { border-color: var(--gold); }
+  .opt.on .radio::after { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--gold); }
+  .opt .ot { font-size: 13.5px; font-weight: 700; }
+  .opt .od { font-size: 11.5px; color: var(--text-faint); margin-top: 2px; }
+
+  /* ---------- Success ---------- */
+  .ok-wrap { text-align: center; padding-top: 18px; }
+  .ok-circle {
+    width: 88px; height: 88px; border-radius: 50%; margin: 0 auto 18px;
+    background: rgba(46, 204, 113, 0.1); border: 1.5px solid rgba(46, 204, 113, 0.45);
+    color: var(--green); display: flex; align-items: center; justify-content: center;
+    animation: pop .35s ease;
+  }
+  .ok-wrap h1 { font-size: 21px; font-weight: 800; margin: 0 0 8px; }
+  .ok-wrap .sub { font-size: 13.5px; color: var(--text-dim); margin: 0 auto 22px; max-width: 340px; line-height: 1.6; }
+  .order-card { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; padding: 18px; text-align: left; }
+  .order-card .oc-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .order-card .oc-id { font-size: 15.5px; font-weight: 800; }
+  .oc-line { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-dim); padding: 5px 0; }
+  .oc-line strong { color: var(--text); font-weight: 700; text-align: right; max-width: 62%; }
+  .oc-items { border-top: 1px solid var(--border); margin-top: 10px; padding-top: 12px; }
+  .actions { display: flex; flex-direction: column; gap: 11px; margin-top: 20px; }
+
+  /* ---------- Status pills ---------- */
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 800; padding: 5px 12px; border-radius: 999px;
+    white-space: nowrap;
+  }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .pill.received { background: var(--gold-soft); color: var(--gold); }
+  .pill.accepted { background: var(--green-bg); color: var(--green); }
+  .pill.preparing { background: var(--orange-bg); color: var(--orange); }
+  .pill.ready { background: var(--teal-bg); color: var(--teal); }
+  .pill.served { background: var(--green-bg); color: var(--green); }
+  .pill.paid { background: var(--blue-bg); color: var(--blue); }
+  .pill.unknown { background: var(--panel-2); color: var(--text-dim); }
+
+  /* ---------- Order tracking ---------- */
+  .track-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 18px;
+    padding: 17px; margin-top: 16px;
+  }
+  .track-head .tid { font-size: 17px; font-weight: 800; }
+  .track-meta { display: flex; gap: 16px; margin-top: 6px; font-size: 12px; color: var(--text-faint); }
+  .tl { position: relative; margin-top: 22px; padding-left: 6px; }
+  .tl-step { position: relative; padding: 0 0 30px 44px; min-height: 46px; }
+  .tl-step:last-child { padding-bottom: 4px; }
+  .tl-dot {
+    position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%;
+    background: var(--panel-2); border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center; color: #14100a; z-index: 1;
+    transition: all .3s;
+  }
+  .tl-step.done .tl-dot { background: var(--gold); border-color: var(--gold); }
+  .tl-step.now .tl-dot {
+    background: var(--bg); border-color: var(--gold); color: var(--gold);
+    box-shadow: 0 0 0 5px rgba(224, 172, 58, 0.14);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  .tl-line {
+    position: absolute; left: 13px; top: 30px; bottom: 2px; width: 2px;
+    background: var(--border); border-radius: 2px;
+  }
+  .tl-step.done .tl-line { background: var(--gold-dim); }
+  .tl-step:last-child .tl-line { display: none; }
+  .tl-label { font-size: 14px; font-weight: 700; padding-top: 3px; }
+  .tl-step:not(.done):not(.now) .tl-label { color: var(--text-faint); }
+  .tl-desc { font-size: 12px; color: var(--text-faint); margin-top: 3px; line-height: 1.5; }
+  .tl-step.now .tl-label { color: var(--gold); }
+  .eta {
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    background: var(--gold-soft); border: 1px solid rgba(224,172,58,.3);
+    color: var(--gold); font-size: 13px; font-weight: 700;
+    border-radius: 13px; padding: 13px; margin-top: 20px;
+  }
+  .poll-note { text-align: center; font-size: 11px; color: var(--text-faint); margin-top: 12px; }
+
+  /* ---------- My orders ---------- */
+  .otabs { display: flex; gap: 8px; margin: 16px 0 14px; }
+  .otab {
+    padding: 8px 18px; border-radius: 999px; font-size: 12.5px; font-weight: 700;
+    background: var(--panel); border: 1px solid var(--border); color: var(--text-dim); cursor: pointer;
+  }
+  .otab.on { background: var(--gold); border-color: var(--gold); color: #14100a; }
+  .ocard {
+    display: flex; align-items: center; gap: 13px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+    padding: 15px; margin-bottom: 12px; cursor: pointer; width: 100%;
+    text-align: left; color: inherit; font: inherit; transition: border-color .15s;
+  }
+  .ocard:hover { border-color: var(--gold-dim); }
+  .ocard .oi { flex: 1; min-width: 0; }
+  .ocard .oid { font-size: 13.5px; font-weight: 800; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .ocard .om { font-size: 11.5px; color: var(--text-faint); margin-top: 5px; }
+  .ocard .total { font-weight: 800; color: var(--gold); font-size: 14px; white-space: nowrap; }
+  .oc-right { display: flex; align-items: center; gap: 8px; color: var(--text-faint); }
+
+  /* ---------- Profile ---------- */
+  .prof-head { display: flex; align-items: center; gap: 15px; padding: 20px 0 6px; }
+  .avatar-big {
+    width: 68px; height: 68px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(160deg, #3a3f4a, #1c1f26);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 25px; font-weight: 800; color: var(--gold);
+  }
+  .prof-head h2 { margin: 0 0 4px; font-size: 18px; font-weight: 800; }
+  .prof-head p { margin: 0; font-size: 13px; color: var(--text-faint); }
+  .plist {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 17px; overflow: hidden; margin-top: 18px;
+  }
+  .pitem {
+    display: flex; align-items: center; gap: 13px; width: 100%;
+    padding: 15px 16px; border-bottom: 1px solid var(--border);
+    background: none; border-left: none; border-right: none; border-top: none;
+    color: var(--text); font-size: 13.5px; font-weight: 600; cursor: pointer; text-align: left;
+  }
+  .pitem:last-child { border-bottom: none; }
+  .pitem:hover { background: var(--panel-2); }
+  .pitem .pi { color: var(--gold); display: flex; width: 22px; justify-content: center; }
+  .pitem .chev { margin-left: auto; color: var(--text-faint); display: flex; }
+  .pitem.danger { color: var(--red); }
+  .pitem.danger .pi { color: var(--red); }
+  .brand-foot { text-align: center; padding: 34px 16px 8px; }
+  .brand-foot img { width: 46px; height: 46px; object-fit: contain; opacity: .9; }
+  .brand-foot .bn { font-size: 12.5px; font-weight: 800; letter-spacing: 0.22em; margin-top: 9px; }
+  .brand-foot .bs { font-size: 9px; letter-spacing: 0.3em; color: var(--text-faint); margin-top: 3px; }
+  .brand-foot .addr { font-size: 11.5px; color: var(--text-faint); margin-top: 10px; line-height: 1.7; }
+
+  /* ---------- Bottom nav ---------- */
+  .bnav {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 860px; z-index: 50;
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    background: rgba(15, 17, 23, 0.97);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .bnav a {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 10px 0 9px; color: var(--text-faint);
+    text-decoration: none; font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+    position: relative; transition: color .15s;
+  }
+  .bnav a.on { color: var(--gold); }
+  .bnav a .nb {
+    position: absolute; top: 5px; right: calc(50% - 20px);
+    min-width: 16px; height: 16px; padding: 0 4px;
+    background: var(--gold); color: #14100a; border-radius: 8px;
+    font-size: 9.5px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ---------- Drawer ---------- */
+  .drawer-ov { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); z-index: 60; animation: fade .2s ease; }
+  .drawer {
+    position: fixed; top: 0; left: 0; bottom: 0; width: min(300px, 84vw); z-index: 61;
+    background: #0f1116; border-right: 1px solid var(--border);
+    padding: 20px 16px; display: flex; flex-direction: column;
+    animation: slidein .22s ease;
+    overflow-y: auto;
+  }
+  .drawer .db { display: flex; align-items: center; gap: 11px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+  .drawer .db img { width: 40px; height: 40px; }
+  .drawer .db .t1 { font-size: 14px; font-weight: 800; letter-spacing: 0.1em; }
+  .drawer .db .t2 { font-size: 8.5px; letter-spacing: 0.28em; color: var(--text-faint); margin-top: 2px; }
+  .dnav { display: flex; flex-direction: column; gap: 4px; margin-top: 14px; flex: 1; }
+  .dnav a {
+    display: flex; align-items: center; gap: 13px; padding: 13px 13px;
+    border-radius: 12px; color: var(--text-dim); text-decoration: none;
+    font-size: 14px; font-weight: 600;
+  }
+  .dnav a:hover { background: var(--panel); color: var(--text); }
+  .dnav a.on { background: var(--gold-soft); color: var(--gold); }
+  .dnav .dcount { margin-left: auto; background: var(--gold); color: #14100a; font-size: 10.5px; font-weight: 800; min-width: 20px; height: 20px; border-radius: 10px; display: flex; align-items: center; justify-content: center; padding: 0 5px; }
+  .drawer .df { border-top: 1px solid var(--border); padding-top: 16px; margin-top: 12px; }
+  .drawer .df .img { height: 76px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: #10131a url("/assets/login-bg.jpg") center / cover; }
+  .drawer .df p { font-size: 11px; color: var(--text-faint); line-height: 1.7; margin: 12px 0 0; }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%);
+    background: #21252e; border: 1px solid var(--border); color: var(--text);
+    padding: 11px 20px; border-radius: 999px; font-size: 13px; font-weight: 600;
+    z-index: 90; box-shadow: 0 12px 34px rgba(0, 0, 0, 0.5);
+    animation: rise .25s ease; max-width: 88vw; text-align: center;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .toast.ok { border-color: rgba(46, 204, 113, 0.4); }
+  .toast.bad { border-color: rgba(255, 107, 107, 0.45); }
+
+  /* ---------- Responsive ---------- */
+  @media (min-width: 640px) {
+    .page { padding: 22px 24px 108px; }
+    .hero { min-height: 300px; }
+    .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .menu-grid .mcard { margin-bottom: 0; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid2 .mcard { margin-bottom: 0; }
+    .buy-row .btn { flex: 1; }
+    .pd-hero { width: 180px; height: 180px; font-size: 78px; }
+  }
+  @media (max-width: 400px) {
+    .pd-top { flex-direction: column; }
+    .pd-hero { width: 100%; height: 170px; font-size: 70px; }
+  }
+
+  @keyframes rise { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slidein { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+  @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(224, 172, 58, 0.14); }
+    50% { box-shadow: 0 0 0 8px rgba(224, 172, 58, 0.06); }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } = React;
+
+/* ======================================================================
+   Helpers — storage, API, formatting, routing
+====================================================================== */
+const LS = {
+  get(key, fallback) {
+    try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
+    catch (e) { return fallback; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* private mode */ }
+  },
+};
+
+const CART_KEY = "mh.cart";
+const PROFILE_KEY = "mh.profile";
+const SAVED_KEY = "mh.saved";
+const LAST_ORDER_KEY = "mh.lastOrder";
+
+function fmt(n) { return "RWF " + Number(n || 0).toLocaleString(); }
+
+function toLocalDateTime(sql) {
+  if (!sql) return "—";
+  const d = new Date(sql.replace(" ", "T") + "Z");
+  return d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+function toLocalTime(sql) {
+  if (!sql) return "—";
+  const d = new Date(sql.replace(" ", "T") + "Z");
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+async function api(path, opts) {
+  const res = await fetch(path, {
+    headers: { "Content-Type": "application/json" },
+    ...opts,
+    body: opts && opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  let data = null;
+  try { data = await res.json(); } catch (e) { /* non-JSON */ }
+  if (!res.ok) throw new Error((data && data.error) || "Something went wrong. Please try again.");
+  return data;
+}
+
+function parseRoute() {
+  const raw = (window.location.hash || "#/").replace(/^#\/?/, "");
+  const [page, param] = raw.split("/");
+  return { page: page || "home", param: param || null };
+}
+
+function navigate(to) {
+  const target = to.startsWith("#") ? to : "#/" + to.replace(/^\//, "");
+  if (window.location.hash === target) return;
+  window.location.hash = target;
+}
+
+const PHONE_RE = /^[0-9+\s()-]{6,20}$/;
+const CATEGORIES = ["All", "Food", "Drinks", "Bar"];
+const EST_PREP = "15 – 20 min";
+const LIFECYCLE = ["Received", "Accepted", "Preparing", "Ready", "Served"];
+const PAY_OPTIONS = [
+  { id: "Cash", title: "Pay at Restaurant", desc: "Pay cash when your order arrives" },
+  { id: "Mobile Money", title: "Mobile Money", desc: "MTN MoMo or Airtel Money at the table" },
+];
+
+/* ======================================================================
+   Icons
+====================================================================== */
+function Svg({ size = 22, children, ...rest }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...rest}>
+      {children}
+    </svg>
+  );
+}
+const IconMenu = (p) => <Svg {...p}><path d="M4 7h16M4 12h16M4 17h16" /></Svg>;
+const IconBack = (p) => <Svg {...p}><path d="M15 5l-7 7 7 7" /></Svg>;
+const IconClose = (p) => <Svg {...p}><path d="M6 6l12 12M18 6L6 18" /></Svg>;
+const IconSearch = (p) => <Svg {...p}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.6-3.6" /></Svg>;
+const IconPlus = (p) => <Svg {...p}><path d="M12 5v14M5 12h14" /></Svg>;
+const IconMinus = (p) => <Svg {...p}><path d="M5 12h14" /></Svg>;
+const IconCheck = (p) => <Svg {...p}><path d="m5 12.5 4.5 4.5L19 7" /></Svg>;
+const IconChevR = (p) => <Svg {...p}><path d="m9 5 7 7-7 7" /></Svg>;
+const IconHome = (p) => <Svg {...p}><path d="M3 10.6 12 3.2l9 7.4V21h-6.2v-6.4H9.2V21H3z" /></Svg>;
+const IconGrid = (p) => <Svg {...p}><rect x="3.5" y="3.5" width="7" height="7" rx="1.6" /><rect x="13.5" y="3.5" width="7" height="7" rx="1.6" /><rect x="3.5" y="13.5" width="7" height="7" rx="1.6" /><rect x="13.5" y="13.5" width="7" height="7" rx="1.6" /></Svg>;
+const IconCart = (p) => <Svg {...p}><path d="M3 4h2l2.4 10.4a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L21 8H6" /><circle cx="10" cy="20" r="1.4" /><circle cx="17.5" cy="20" r="1.4" /></Svg>;
+const IconReceipt = (p) => <Svg {...p}><path d="M6 3h12v18l-3-1.8-3 1.8-3-1.8L6 21z" /><path d="M9.5 8.5h5M9.5 12.5h5" /></Svg>;
+const IconUser = (p) => <Svg {...p}><circle cx="12" cy="8.2" r="3.9" /><path d="M4.5 20.5c1.4-3.7 4.2-5.6 7.5-5.6s6.1 1.9 7.5 5.6" /></Svg>;
+const IconClock = (p) => <Svg {...p}><circle cx="12" cy="12" r="8.6" /><path d="M12 7.2V12l3.2 2" /></Svg>;
+const IconTag = (p) => <Svg {...p}><path d="M3.5 11V4.5H10L20.5 15 14 21.5z" /><circle cx="7.6" cy="8.4" r="1.3" /></Svg>;
+const IconPin = (p) => <Svg {...p}><path d="M12 21.5S5 15.6 5 10a7 7 0 1 1 14 0c0 5.6-7 11.5-7 11.5z" /><circle cx="12" cy="10" r="2.4" /></Svg>;
+const IconPhone = (p) => <Svg {...p}><path d="M6.5 3.5h3.6l1.5 4.4-2.4 1.5a12.4 12.4 0 0 0 5.4 5.4l1.5-2.4 4.4 1.5v3.6a2 2 0 0 1-2.1 2A16.4 16.4 0 0 1 4.5 5.6a2 2 0 0 1 2-2.1z" /></Svg>;
+const IconHeart = (p) => <Svg {...p}><path d="M12 20.3s-7.3-4.6-9.4-9.2C1.2 8 3.1 4.6 6.6 4.6c2 0 3.5 1.2 4.3 2.6l1.1 1.7 1.1-1.7c.8-1.4 2.3-2.6 4.3-2.6 3.5 0 5.4 3.4 4 6.5-2.1 4.6-9.4 9.2-9.4 9.2z" /></Svg>;
+const IconHeartFill = (p) => <Svg {...p}><path fill="currentColor" stroke="none" d="M12 20.3s-7.3-4.6-9.4-9.2C1.2 8 3.1 4.6 6.6 4.6c2 0 3.5 1.2 4.3 2.6l1.1 1.7 1.1-1.7c.8-1.4 2.3-2.6 4.3-2.6 3.5 0 5.4 3.4 4 6.5-2.1 4.6-9.4 9.2-9.4 9.2z" /></Svg>;
+const IconTrash = (p) => <Svg {...p}><path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13.5h9L17.5 7" /></Svg>;
+const IconSettings = (p) => <Svg {...p}><circle cx="12" cy="12" r="3.2" /><path d="M19 12a7 7 0 0 0-.1-1.1l2-1.5-2-3.4-2.3 1a7 7 0 0 0-1.9-1.1l-.3-2.5h-4l-.3 2.5a7 7 0 0 0-1.9 1.1l-2.3-1-2 3.4 2 1.5a7 7 0 0 0 0 2.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 1.9 1.1l.3 2.5h4l.3-2.5a7 7 0 0 0 1.9-1.1l2.3 1 2-3.4-2-1.5c.1-.4.1-.7.1-1.1z" /></Svg>;
+const IconHelp = (p) => <Svg {...p}><circle cx="12" cy="12" r="8.6" /><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.4c-.7.3-1 .9-1 1.7v.4" /><circle cx="12" cy="17" r="0.5" fill="currentColor" /></Svg>;
+const IconLogout = (p) => <Svg {...p}><path d="M14 4.5H6.5A1.5 1.5 0 0 0 5 6v12a1.5 1.5 0 0 0 1.5 1.5H14" /><path d="M17 8.5 20.5 12 17 15.5M20 12H10" /></Svg>;
+
+/* ======================================================================
+   App-wide context
+====================================================================== */
+const AppCtx = createContext(null);
+const useApp = () => useContext(AppCtx);
+
+function thumbClass(item) {
+  return (item.category || "").toLowerCase();
+}
+function Thumb({ item, className, style }) {
+  const [failed, setFailed] = useState(false);
+  const cls = "thumb " + thumbClass(item) + (className ? " " + className : "");
+  if (item.image_url && !failed) {
+    return (
+      <div className={cls} style={style}>
+        <img src={item.image_url} alt={item.name} onError={() => setFailed(true)} />
+      </div>
+    );
+  }
+  return <div className={cls} style={style} role="img" aria-label={item.name}><span>{item.emoji || "🍽️"}</span></div>;
+}
+
+function StatusPill({ status }) {
+  const cls = (status || "").toLowerCase();
+  const known = ["received", "accepted", "preparing", "ready", "served", "paid"].includes(cls);
+  return <span className={"pill " + (known ? cls : "unknown")}>{status || "Unknown"}</span>;
+}
+
+/* ======================================================================
+   Header / Drawer / Bottom nav
+====================================================================== */
+function Header({ onMenu, onBack, back }) {
+  const { cart } = useApp();
+  const count = cart.reduce((s, i) => s + i.qty, 0);
+  return (
+    <header className="hdr">
+      <button className="iconbtn" onClick={onBack || onMenu} aria-label={back ? "Go back" : "Open menu"}>
+        {back ? <IconBack size={20} /> : <IconMenu size={20} />}
+      </button>
+      <div className="hdr-brand" onClick={() => navigate("")} role="banner">
+        <img src="/assets/logo.png" alt="" />
+        <div>
+          <div className="bt">MAHUMBEZI</div>
+          <div className="bs">BAR &amp; RESTAURANT</div>
+        </div>
+      </div>
+      <button className="iconbtn" onClick={() => navigate("cart")} aria-label={"Cart, " + count + " items"}>
+        <IconCart size={19} />
+        {count > 0 && <span className="badge">{count}</span>}
+      </button>
+    </header>
+  );
+}
+
+function Drawer({ open, onClose }) {
+  const { cart, saved } = useApp();
+  const route = parseRoute();
+  const count = cart.reduce((s, i) => s + i.qty, 0);
+  if (!open) return null;
+  const links = [
+    { to: "", label: "Home", icon: <IconHome size={19} /> },
+    { to: "menu", label: "Menu", icon: <IconGrid size={19} /> },
+    { to: "cart", label: "Cart", icon: <IconCart size={19} />, count },
+    { to: "orders", label: "My Orders", icon: <IconReceipt size={19} /> },
+    { to: "saved", label: "Saved Items", icon: <IconHeart size={19} />, count: saved.length },
+    { to: "profile", label: "Profile", icon: <IconUser size={19} /> },
+  ];
+  return (
+    <React.Fragment>
+      <div className="drawer-ov" onClick={onClose} />
+      <nav className="drawer" aria-label="Main menu">
+        <div className="db">
+          <img src="/assets/logo.png" alt="" />
+          <div>
+            <div className="t1">MAHUMBEZI</div>
+            <div className="t2">BAR &amp; RESTAURANT</div>
+          </div>
+          <button className="iconbtn" style={{ marginLeft: "auto" }} onClick={onClose} aria-label="Close menu">
+            <IconClose size={18} />
+          </button>
+        </div>
+        <div className="dnav">
+          {links.map((l) => (
+            <a key={l.to || "home"}
+               className={(route.page === (l.to || "home")) ? "on" : ""}
+               href={"#/" + l.to}
+               onClick={onClose}>
+              {l.icon}
+              <span>{l.label}</span>
+              {l.count > 0 && <span className="dcount">{l.count}</span>}
+            </a>
+          ))}
+        </div>
+        <div className="df">
+          <div className="img" />
+          <p>Good food, great drinks, happy people.<br />Scan. Order. Relax.</p>
+        </div>
+      </nav>
+    </React.Fragment>
+  );
+}
+
+function BottomNav() {
+  const { cart } = useApp();
+  const route = parseRoute();
+  const count = cart.reduce((s, i) => s + i.qty, 0);
+  const items = [
+    { to: "", page: "home", label: "Home", icon: <IconHome size={21} /> },
+    { to: "menu", page: "menu", label: "Menu", icon: <IconGrid size={20} /> },
+    { to: "cart", page: "cart", label: "Cart", icon: <IconCart size={21} />, count },
+    { to: "orders", page: "orders", label: "Orders", icon: <IconReceipt size={21} /> },
+    { to: "profile", page: "profile", label: "Profile", icon: <IconUser size={21} /> },
+  ];
+  return (
+    <nav className="bnav" aria-label="Bottom navigation">
+      {items.map((it) => (
+        <a key={it.page} href={"#/" + it.to} className={route.page === it.page ? "on" : ""}>
+          {it.icon}
+          <span>{it.label}</span>
+          {it.count > 0 && <span className="nb">{it.count}</span>}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
+/* ======================================================================
+   Product cards
+====================================================================== */
+function ProductCard({ item }) {
+  const { addToCart, toast, saved, toggleSaved } = useApp();
+  const isSaved = saved.includes(item.id);
+  return (
+    <div className="pcard" onClick={() => navigate("product/" + item.id)} role="button" tabIndex={0}
+         onKeyDown={(e) => { if (e.key === "Enter") navigate("product/" + item.id); }}>
+      <Thumb item={item} />
+      <h3>{item.name}</h3>
+      <p className="desc">{item.description || "Made fresh to order."}</p>
+      <div className="prow">
+        <span className="price">{fmt(item.price)}</span>
+        <div style={{ display: "flex", gap: 7 }}>
+          <button className="addbtn" style={{ background: "var(--panel-2)", color: isSaved ? "var(--gold)" : "var(--text-faint)", border: "1px solid var(--border)" }}
+                  aria-label={isSaved ? "Remove from saved" : "Save item"}
+                  onClick={(e) => { e.stopPropagation(); toggleSaved(item.id); }}>
+            {isSaved ? <IconHeartFill size={16} /> : <IconHeart size={16} />}
+          </button>
+          <button className="addbtn" aria-label={"Add " + item.name + " to cart"}
+                  onClick={(e) => { e.stopPropagation(); addToCart(item, 1); toast("Added to cart", "ok"); }}>
+            <IconPlus size={17} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MenuRow({ item }) {
+  const { addToCart, toast } = useApp();
+  return (
+    <div className="mcard" onClick={() => navigate("product/" + item.id)} role="button" tabIndex={0}
+         onKeyDown={(e) => { if (e.key === "Enter") navigate("product/" + item.id); }}>
+      <Thumb item={item} />
+      <div className="info">
+        <h3>{item.name} <span className={"tag " + thumbClass(item)}>{item.category}</span></h3>
+        <p className="desc">{item.description || "Made fresh to order."}</p>
+        <div style={{ marginTop: 8 }}><span className="price">{fmt(item.price)}</span></div>
+      </div>
+      <div className="side">
+        <button className="addbtn" aria-label={"Add " + item.name + " to cart"}
+                onClick={(e) => { e.stopPropagation(); addToCart(item, 1); toast("Added to cart", "ok"); }}>
+          <IconPlus size={17} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ======================================================================
+   Home
+====================================================================== */
+function HomePage() {
+  const { menu, search, setSearch, category, setCategory } = useApp();
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    let list = menu;
+    if (category !== "All") list = list.filter((i) => i.category === category);
+    if (q) list = list.filter((i) =>
+      i.name.toLowerCase().includes(q) ||
+      (i.description || "").toLowerCase().includes(q) ||
+      i.category.toLowerCase().includes(q));
+    return list;
+  }, [menu, search, category]);
+
+  const popular = filtered.slice(0, 6);
+  const featured = filtered.slice(6);
+
+  return (
+    <div className="page">
+      <section className="hero">
+        <div className="eyebrow">WELCOME TO MAHUMBEZI</div>
+        <h1>Good Food,<br />Great Drinks,<br />Happy People.</h1>
+        <div className="chips">
+          <span className="chip">Fresh food</span>
+          <span className="chip">Premium drinks</span>
+          <span className="chip">Best experience</span>
+        </div>
+      </section>
+
+      <div className="search">
+        <IconSearch size={18} />
+        <input placeholder="Search for food, drinks…" value={search}
+               onChange={(e) => setSearch(e.target.value)} aria-label="Search menu" />
+        {search && <button className="clr" onClick={() => setSearch("")} aria-label="Clear search"><IconClose size={16} /></button>}
+      </div>
+
+      <div className="cats">
+        {CATEGORIES.map((c) => (
+          <button key={c} className={"cat" + (category === c ? " on" : "")}
+                  onClick={() => { setCategory(c); if (c !== "All" || search) navigate("menu"); }}>
+            {c}
+          </button>
+        ))}
+      </div>
+
+      {search || category !== "All" ? (
+        <React.Fragment>
+          <div className="sec"><h2>{search ? "Search results" : category}</h2>
+            <span className="price" style={{ fontSize: 12.5 }}>{filtered.length} item{filtered.length === 1 ? "" : "s"}</span>
+          </div>
+          {filtered.length === 0 ? (
+            <div className="empty">
+              <span className="big">🔍</span>
+              <p>No items match your search.</p>
+              <button className="btn" onClick={() => { setSearch(""); setCategory("All"); }}>Clear filters</button>
+            </div>
+          ) : (
+            <div className="grid2">{filtered.map((i) => <MenuRow key={i.id} item={i} />)}</div>
+          )}
+        </React.Fragment>
+      ) : (
+        <React.Fragment>
+          <div className="sec">
+            <h2>Popular Items</h2>
+            <button className="link" onClick={() => navigate("menu")}>View All →</button>
+          </div>
+          {menu.length === 0 ? (
+            <div className="load">Loading menu…</div>
+          ) : (
+            <div className="hscroll">{popular.map((i) => <ProductCard key={i.id} item={i} />)}</div>
+          )}
+
+          {featured.length > 0 && (
+            <React.Fragment>
+              <div className="sec">
+                <h2>Featured Items</h2>
+                <button className="link" onClick={() => navigate("menu")}>View All →</button>
+              </div>
+              <div className="hscroll">{featured.map((i) => <ProductCard key={i.id} item={i} />)}</div>
+            </React.Fragment>
+          )}
+        </React.Fragment>
+      )}
+    </div>
+  );
+}
+
+/* ======================================================================
+   Menu
+====================================================================== */
+function MenuPage() {
+  const { menu, search, setSearch, category, setCategory } = useApp();
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    let list = menu;
+    if (category !== "All") list = list.filter((i) => i.category === category);
+    if (q) list = list.filter((i) =>
+      i.name.toLowerCase().includes(q) ||
+      (i.description || "").toLowerCase().includes(q));
+    return list;
+  }, [menu, search, category]);
+
+  return (
+    <div className="page">
+      <h1 className="page-title">Our Menu</h1>
+      <p className="page-sub">Delicious food, refreshing drinks, crafted for you.</p>
+
+      <div className="search">
+        <IconSearch size={18} />
+        <input placeholder="Search for food, drinks…" value={search}
+               onChange={(e) => setSearch(e.target.value)} aria-label="Search menu" />
+        {search && <button className="clr" onClick={() => setSearch("")} aria-label="Clear search"><IconClose size={16} /></button>}
+      </div>
+
+      <div className="cats">
+        {CATEGORIES.map((c) => (
+          <button key={c} className={"cat" + (category === c ? " on" : "")} onClick={() => setCategory(c)}>{c}</button>
+        ))}
+      </div>
+
+      {menu.length === 0 ? (
+        <div className="load">Loading menu…</div>
+      ) : filtered.length === 0 ? (
+        <div className="empty">
+          <span className="big">🍽️</span>
+          <p>Nothing here right now.</p>
+          <button className="btn" onClick={() => { setSearch(""); setCategory("All"); }}>Show all items</button>
+        </div>
+      ) : (
+        <div className="grid2" style={{ marginTop: 14 }}>
+          {filtered.map((i) => <MenuRow key={i.id} item={i} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ======================================================================
+   Product detail
+====================================================================== */
+function ProductPage({ id }) {
+  const { menu, addToCart, toast, saved, toggleSaved } = useApp();
+  const [qty, setQty] = useState(1);
+  const [tab, setTab] = useState("details");
+  const [detail, setDetail] = useState(null);
+  const [status, setStatus] = useState("loading");
+
+  const item = detail || menu.find((i) => String(i.id) === String(id)) || null;
+
+  useEffect(() => {
+    let alive = true;
+    setStatus("loading");
+    api("/api/public/menu/" + id)
+      .then((d) => { if (alive) { setDetail(d); setStatus("ready"); } })
+      .catch(() => { if (alive) setStatus(menu.some((i) => String(i.id) === String(id)) ? "ready" : "error"); });
+    return () => { alive = false; };
+  }, [id]);
+
+  if (status === "loading" && !item) return <div className="page"><div className="load">Loading…</div></div>;
+  if (!item) {
+    return (
+      <div className="page">
+        <div className="empty">
+          <span className="big">😕</span>
+          <p>This item isn't available right now.</p>
+          <button className="btn" onClick={() => navigate("menu")}>Back to Menu</button>
+        </div>
+      </div>
+    );
+  }
+
+  const isSaved = saved.includes(item.id);
+  const ingredients = (detail && detail.ingredients) || [];
+
+  return (
+    <div className="page">
+      <div className="pd-top">
+        <Thumb item={item} className="pd-hero" />
+        <div className="pd-info">
+          <span className={"tag " + thumbClass(item)}>{item.category}</span>
+          <h1>{item.name}</h1>
+          <div className="pd-price">{fmt(item.price)}</div>
+        </div>
+      </div>
+
+      <p className="pd-desc">{item.description || "Made fresh to order by our kitchen team."}</p>
+
+      <div className="meta-row">
+        <div className="meta">
+          <span className="mi"><IconClock size={19} /></span>
+          <div>Preparation Time<strong>{EST_PREP}</strong></div>
+        </div>
+        <div className="meta">
+          <span className="mi"><IconTag size={19} /></span>
+          <div>Category<strong>{item.category}</strong></div>
+        </div>
+      </div>
+
+      <div className="buy-row">
+        <div className="qty">
+          <button onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Decrease quantity"><IconMinus size={16} /></button>
+          <span className="n">{qty}</span>
+          <button onClick={() => setQty((q) => Math.min(50, q + 1))} aria-label="Increase quantity"><IconPlus size={16} /></button>
+        </div>
+        <button className="btn btn-gold" onClick={() => { addToCart(item, qty); toast(qty + " × " + item.name + " added", "ok"); setQty(1); }}>
+          <IconCart size={18} /> Add to Cart
+        </button>
+        <button className="iconbtn" style={{ width: 52, height: "auto" }}
+                onClick={() => toggleSaved(item.id)} aria-label={isSaved ? "Remove from saved" : "Save item"}>
+          {isSaved ? <IconHeartFill size={19} /> : <IconHeart size={19} />}
+        </button>
+      </div>
+
+      <div className="tabs">
+        <button className={tab === "details" ? "on" : ""} onClick={() => setTab("details")}>Details</button>
+        <button className={tab === "ingredients" ? "on" : ""} onClick={() => setTab("ingredients")}>Ingredients</button>
+      </div>
+      <div className="tab-body">
+        {tab === "details" ? (
+          <React.Fragment>
+            <p style={{ margin: "0 0 10px" }}>{item.description || "Made fresh to order by our kitchen team."}</p>
+            <p style={{ margin: 0, color: "var(--text-faint)" }}>
+              Served at {fmt(item.price)} · {item.category} · Est. preparation {EST_PREP}.
+              Ask your waiter for allergen information.
+            </p>
+          </React.Fragment>
+        ) : ingredients.length > 0 ? (
+          <ul>{ingredients.map((n, idx) => <li key={idx}>{n}</li>)}</ul>
+        ) : (
+          <p style={{ margin: 0, color: "var(--text-faint)" }}>
+            Our kitchen prepares each dish fresh — ask the team about ingredients and allergens.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ======================================================================
+   Cart
+====================================================================== */
+function CartPage() {
+  const { cart, setCart, vatRate, toast } = useApp();
+  const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const tax = Math.round(subtotal * (vatRate / 100));
+  const total = subtotal + tax;
+
+  const setQty = (id, qty) =>
+    setCart((c) => qty <= 0 ? c.filter((i) => i.id !== id) : c.map((i) => (i.id === id ? { ...i, qty: Math.min(100, qty) } : i)));
+  const remove = (id) => { setCart((c) => c.filter((i) => i.id !== id)); toast("Item removed", "ok"); };
+
+  if (cart.length === 0) {
+    return (
+      <div className="page">
+        <h1 className="page-title">Your Cart</h1>
+        <div className="empty" style={{ marginTop: 20 }}>
+          <span className="big">🛒</span>
+          <p>Your cart is empty.<br />Add something delicious.</p>
+          <button className="btn btn-gold" onClick={() => navigate("menu")}>Browse Menu</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page">
+      <h1 className="page-title">Your Cart</h1>
+      <p className="page-sub">{cart.reduce((s, i) => s + i.qty, 0)} item{cart.reduce((s, i) => s + i.qty, 0) === 1 ? "" : "s"} ready to order.</p>
+
+      <div style={{ marginTop: 16 }}>
+        {cart.map((i) => (
+          <div className="cart-row" key={i.id}>
+            <Thumb item={i} />
+            <div className="info">
+              <h3>{i.name}</h3>
+              <span className="price">{fmt(i.price)}</span>
+            </div>
+            <div className="mini-qty">
+              <button onClick={() => setQty(i.id, i.qty - 1)} aria-label="Decrease"><IconMinus size={13} /></button>
+              <span className="n">{i.qty}</span>
+              <button onClick={() => setQty(i.id, i.qty + 1)} aria-label="Increase"><IconPlus size={13} /></button>
+            </div>
+            <button className="rm" onClick={() => remove(i.id)} aria-label={"Remove " + i.name}><IconTrash size={17} /></button>
+          </div>
+        ))}
+      </div>
+
+      <div className="totals">
+        <div className="total-row"><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
+        <div className="total-row"><span>VAT ({vatRate}%)</span><span>{fmt(tax)}</span></div>
+        <div className="total-row grand"><span>Total</span><span>{fmt(total)}</span></div>
+      </div>
+
+      <button className="btn btn-gold btn-block" style={{ marginTop: 18 }} onClick={() => navigate("checkout")}>
+        Proceed to Checkout
+      </button>
+      <button className="btn btn-block" style={{ marginTop: 10 }} onClick={() => navigate("menu")}>
+        Add more items
+      </button>
+    </div>
+  );
+}
+
+/* ======================================================================
+   Checkout
+====================================================================== */
+function CheckoutPage() {
+  const { cart, tables, profile, saveProfile, clearCart, vatRate, toast } = useApp();
+  const [name, setName] = useState(profile ? profile.name : "");
+  const [phone, setPhone] = useState(profile ? profile.phone : "");
+  const [table, setTable] = useState("");
+  const [method, setMethod] = useState("Cash");
+  const [busy, setBusy] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    if (tables.length > 0 && !table) setTable(tables[0].name);
+  }, [tables]);
+
+  const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const tax = Math.round(subtotal * (vatRate / 100));
+  const total = subtotal + tax;
+
+  if (cart.length === 0) {
+    return (
+      <div className="page">
+        <div className="empty" style={{ marginTop: 40 }}>
+          <span className="big">🛒</span>
+          <p>Your cart is empty.</p>
+          <button className="btn btn-gold" onClick={() => navigate("menu")}>Browse Menu</button>
+        </div>
+      </div>
+    );
+  }
+
+  async function place() {
+    const errs = {};
+    if (name.trim().length < 2) errs.name = "Please enter your name";
+    if (!PHONE_RE.test(phone.trim())) errs.phone = "Please enter a valid phone number";
+    if (!table) errs.table = "Select your table";
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
+    setBusy(true);
+    try {
+      const order = await api("/api/public/orders", {
+        method: "POST",
+        body: {
+          customerName: name.trim(),
+          phone: phone.trim(),
+          tableName: table,
+          method: method,
+          items: cart.map((i) => ({ menuItemId: Number(i.id), qty: i.qty })),
+        },
+      });
+      saveProfile({ name: name.trim(), phone: phone.trim() });
+      LS.set(LAST_ORDER_KEY, { id: order.id, phone: phone.trim() });
+      clearCart();
+      navigate("success/" + order.id);
+    } catch (err) {
+      toast(err.message, "bad");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="page">
+      <h1 className="page-title">Checkout</h1>
+
+      <div className="form-label">YOUR INFORMATION</div>
+      <div className={"field" + (errors.name ? " bad" : "")}>
+        <IconUser size={18} />
+        <input placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)}
+               autoComplete="name" aria-label="Full name" />
+      </div>
+      {errors.name && <div className="hint" style={{ color: "var(--red)", marginTop: -6, marginBottom: 10 }}>{errors.name}</div>}
+      <div className={"field" + (errors.phone ? " bad" : "")}>
+        <IconPhone size={18} />
+        <input placeholder="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)}
+               inputMode="tel" autoComplete="tel" aria-label="Phone number" />
+      </div>
+      {errors.phone
+        ? <div className="hint" style={{ color: "var(--red)", marginTop: -6, marginBottom: 10 }}>{errors.phone}</div>
+        : <p className="hint">We'll only use this to confirm your order.</p>}
+
+      <div className="form-label">SELECT TABLE</div>
+      <div className={"field" + (errors.table ? " bad" : "")}>
+        <IconPin size={18} />
+        <select value={table} onChange={(e) => setTable(e.target.value)} aria-label="Select table">
+          <option value="" disabled>Choose your table…</option>
+          {tables.map((t) => (
+            <option key={t.id} value={t.name}>
+              {t.name} · {t.seats} seats{t.status === "Occupied" ? " (occupied)" : ""}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="form-label">PAYMENT METHOD</div>
+      {PAY_OPTIONS.map((o) => (
+        <button key={o.id} className={"opt" + (method === o.id ? " on" : "")} onClick={() => setMethod(o.id)}>
+          <span className="radio" />
+          <span>
+            <span className="ot">{o.title}</span>
+            <span className="od" style={{ display: "block" }}>{o.desc}</span>
+          </span>
+        </button>
+      ))}
+
+      <div className="totals">
+        <div className="total-row"><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
+        <div className="total-row"><span>VAT ({vatRate}%)</span><span>{fmt(tax)}</span></div>
+        <div className="total-row grand"><span>Total</span><span>{fmt(total)}</span></div>
+      </div>
+
+      <button className="btn btn-gold btn-block" style={{ marginTop: 18, padding: 16 }}
+              disabled={busy} onClick={place}>
+        {busy ? "Placing Order…" : "Place Order →"}
+      </button>
+      <p className="hint" style={{ textAlign: "center", marginTop: 12 }}>
+        Your order goes straight to the kitchen and bar.
+      </p>
+    </div>
+  );
+}
+
+/* ======================================================================
+   Order success
+====================================================================== */
+function OrderSummaryCard({ order }) {
+  return (
+    <div className="order-card">
+      <div className="oc-head">
+        <span className="oc-id">#{order.id}</span>
+        <StatusPill status={order.status} />
+      </div>
+      <div className="oc-line"><span>Table</span><strong>{order.table_name}</strong></div>
+      <div className="oc-line"><span>Placed</span><strong>{toLocalDateTime(order.created_at)}</strong></div>
+      <div className="oc-line"><span>Payment</span><strong>
+        {order.method === "Mobile Money" ? "Mobile Money" : "Pay at Restaurant"}
+      </strong></div>
+      <div className="oc-items">
+        {(order.items || []).map((it, idx) => (
+          <div className="oc-line" key={idx}>
+            <span>{it.name} × {it.qty}</span>
+            <strong>{fmt(it.price * it.qty)}</strong>
+          </div>
+        ))}
+        <div className="oc-line"><span>VAT</span><strong>{fmt(order.tax)}</strong></div>
+        <div className="oc-line" style={{ fontSize: 15, fontWeight: 800, color: "var(--text)", paddingTop: 8 }}>
+          <span>Total</span><strong style={{ color: "var(--gold)" }}>{fmt(order.total)}</strong>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Fetch one order (phone-scoped). Pass pollMs to keep re-fetching while
+// the component stays mounted — used by the live tracking screen.
+function useOrder(id, pollMs) {
+  const { profile } = useApp();
+  const [order, setOrder] = useState(null);
+  const [state, setState] = useState("loading");
+  // Prefer the phone the order was actually placed with (remembered at
+  // checkout) over the current profile — the profile may have changed since.
+  const last = LS.get(LAST_ORDER_KEY, null);
+  const phone = (last && String(last.id) === String(id) && last.phone)
+    ? last.phone
+    : (profile && profile.phone) || "";
+
+  const load = useCallback(() => {
+    if (!phone) { setState("nophone"); return Promise.resolve(); }
+    return api("/api/public/orders/" + id + "?phone=" + encodeURIComponent(phone))
+      .then((o) => { setOrder(o); setState("ready"); })
+      .catch((e) => setState(e.message === "Order not found" ? "notfound" : "error"));
+  }, [id, phone]);
+
+  useEffect(() => { setState("loading"); load(); }, [load]);
+
+  useEffect(() => {
+    if (!pollMs || !phone) return undefined;
+    const t = setInterval(load, pollMs);
+    return () => clearInterval(t);
+  }, [load, pollMs, phone]);
+
+  return { order, state, phone, reload: load };
+}
+
+function SuccessPage({ id }) {
+  const { order, state } = useOrder(id);
+
+  if (state === "loading" || !order) {
+    return <div className="page"><div className="load">Loading your order…</div></div>;
+  }
+
+  return (
+    <div className="page">
+      <div className="ok-wrap">
+        <div className="ok-circle"><IconCheck size={40} /></div>
+        <h1>Order Sent Successfully!</h1>
+        <p className="sub">Your order has been received. Thank you! Follow its progress live below.</p>
+        <OrderSummaryCard order={order} />
+        <div className="actions">
+          <button className="btn btn-gold btn-block" onClick={() => navigate("tracking/" + order.id)}>
+            View Order Status
+          </button>
+          <button className="btn btn-block" onClick={() => navigate("menu")}>Back to Menu</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ======================================================================
+   Order tracking
+====================================================================== */
+const TRACK_STEPS = [
+  { key: "Received", label: "Order Received", desc: "We've got your order — thank you!" },
+  { key: "Accepted", label: "Order Confirmed", desc: "The kitchen and bar accepted your order." },
+  { key: "Preparing", label: "Preparing", desc: "Your food and drinks are being prepared." },
+  { key: "Ready", label: "Ready to Serve", desc: "Almost there — bringing it over shortly." },
+  { key: "Served", label: "Served", desc: "Enjoy your meal! Bon appétit." },
+];
+
+function TrackingPage({ id }) {
+  const { order, state } = useOrder(id, 5000);
+
+  if (state === "nophone") {
+    return (
+      <div className="page">
+        <div className="empty" style={{ marginTop: 40 }}>
+          <span className="big">📱</span>
+          <p>Set your phone number in your profile to track orders.</p>
+          <button className="btn btn-gold" onClick={() => navigate("profile")}>Open Profile</button>
+        </div>
+      </div>
+    );
+  }
+  if (state === "notfound") {
+    return (
+      <div className="page">
+        <div className="empty" style={{ marginTop: 40 }}>
+          <span className="big">🔎</span>
+          <p>Order not found. It may have been placed with a different number.</p>
+          <button className="btn" onClick={() => navigate("orders")}>My Orders</button>
+        </div>
+      </div>
+    );
+  }
+  if (!order) return <div className="page"><div className="load">Loading order status…</div></div>;
+
+  const isPaid = order.status === "Paid";
+  let currentIdx = isPaid ? TRACK_STEPS.length : TRACK_STEPS.findIndex((s) => s.key === order.status);
+  if (currentIdx < 0) currentIdx = 0;
+
+  return (
+    <div className="page">
+      <h1 className="page-title">Order Status</h1>
+
+      <div className="track-head">
+        <div>
+          <div className="tid">#{order.id}</div>
+          <div className="track-meta">
+            <span>Table {order.table_name}</span>
+            <span>{toLocalTime(order.created_at)}</span>
+          </div>
+        </div>
+        <StatusPill status={order.status} />
+      </div>
+
+      <div className="tl">
+        {TRACK_STEPS.map((s, i) => {
+          const done = i < currentIdx;
+          const now = i === currentIdx;
+          return (
+            <div className={"tl-step" + (done ? " done" : "") + (now ? " now" : "")} key={s.key}>
+              <div className="tl-line" />
+              <div className="tl-dot">{done ? <IconCheck size={15} /> : now ? <IconClock size={14} /> : null}</div>
+              <div className="tl-label">{s.label}</div>
+              <div className="tl-desc">{s.desc}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="eta"><IconClock size={17} /> Estimated time: {EST_PREP}</div>
+      <div className="poll-note">Status updates automatically every few seconds.</div>
+
+      <div className="actions">
+        <button className="btn btn-block" onClick={() => navigate("menu")}>Order More</button>
+        <button className="btn btn-block" onClick={() => navigate("orders")}>My Orders</button>
+      </div>
+    </div>
+  );
+}
+
+/* ======================================================================
+   My orders
+====================================================================== */
+function OrdersPage() {
+  const { profile } = useApp();
+  const [tab, setTab] = useState("All");
+  const [orders, setOrders] = useState(null);
+  const [error, setError] = useState("");
+
+  const phone = profile ? profile.phone : "";
+
+  useEffect(() => {
+    if (!phone) { setOrders([]); return; }
+    let alive = true;
+    api("/api/public/orders?phone=" + encodeURIComponent(phone))
+      .then((d) => { if (alive) setOrders(d); })
+      .catch((e) => { if (alive) { setError(e.message); setOrders([]); } });
+    return () => { alive = false; };
+  }, [phone]);
+
+  if (!profile) {
+    return (
+      <div className="page">
+        <h1 className="page-title">My Orders</h1>
+        <div className="empty" style={{ marginTop: 20 }}>
+          <span className="big">📋</span>
+          <p>Set up your profile to see your order history.</p>
+          <button className="btn btn-gold" onClick={() => navigate("profile")}>Open Profile</button>
+        </div>
+      </div>
+    );
+  }
+
+  const done = (o) => o.status === "Served" || o.status === "Paid";
+  const list = (orders || []).filter((o) => tab === "All" || (tab === "Pending" ? !done(o) : done(o)));
+
+  return (
+    <div className="page">
+      <h1 className="page-title">My Orders</h1>
+      <p className="page-sub">Everything you've ordered with {phone}.</p>
+
+      <div className="otabs">
+        {["All", "Pending", "Completed"].map((t) => (
+          <button key={t} className={"otab" + (tab === t ? " on" : "")} onClick={() => setTab(t)}>{t}</button>
+        ))}
+      </div>
+
+      {error && <div className="err">{error}</div>}
+      {orders === null ? (
+        <div className="load">Loading orders…</div>
+      ) : list.length === 0 ? (
+        <div className="empty">
+          <span className="big">🧾</span>
+          <p>{tab === "All" ? "You haven't ordered yet." : "No " + tab.toLowerCase() + " orders."}</p>
+          <button className="btn btn-gold" onClick={() => navigate("menu")}>Browse Menu</button>
+        </div>
+      ) : (
+        list.map((o) => (
+          <button className="ocard" key={o.id} onClick={() => navigate("tracking/" + o.id)}>
+            <div className="oi">
+              <div className="oid">#{o.id} <StatusPill status={o.status} /></div>
+              <div className="om">
+                Table {o.table_name} · {o.itemCount} item{o.itemCount === 1 ? "" : "s"} · {toLocalDateTime(o.created_at)}
+              </div>
+            </div>
+            <div className="oc-right">
+              <span className="total">{fmt(o.total)}</span>
+              <IconChevR size={17} />
+            </div>
+          </button>
+        ))
+      )}
+    </div>
+  );
+}
+
+/* ======================================================================
+   Saved items
+====================================================================== */
+function SavedPage() {
+  const { menu, saved } = useApp();
+  const items = menu.filter((i) => saved.includes(i.id));
+  return (
+    <div className="page">
+      <h1 className="page-title">Saved Items</h1>
+      <p className="page-sub">Your favourites, one tap away.</p>
+      {items.length === 0 ? (
+        <div className="empty" style={{ marginTop: 24 }}>
+          <span className="big">💛</span>
+          <p>Nothing saved yet.<br />Tap the heart on any item to save it.</p>
+          <button className="btn btn-gold" onClick={() => navigate("menu")}>Browse Menu</button>
+        </div>
+      ) : (
+        <div className="grid2" style={{ marginTop: 18 }}>
+          {items.map((i) => <MenuRow key={i.id} item={i} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ======================================================================
+   Profile
+====================================================================== */
+function ProfilePage() {
+  const { profile, saveProfile, clearProfile, config, saved, toast } = useApp();
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(profile ? profile.name : "");
+  const [phone, setPhone] = useState(profile ? profile.phone : "");
+
+  function startEdit() {
+    setName(profile ? profile.name : "");
+    setPhone(profile ? profile.phone : "");
+    setEditing(true);
+  }
+  function saveEdit() {
+    if (name.trim().length < 2) { toast("Please enter your name", "bad"); return; }
+    if (!PHONE_RE.test(phone.trim())) { toast("Please enter a valid phone number", "bad"); return; }
+    saveProfile({ name: name.trim(), phone: phone.trim() });
+    setEditing(false);
+    toast("Profile saved", "ok");
+  }
+
+  return (
+    <div className="page">
+      <h1 className="page-title">My Account</h1>
+
+      <div className="prof-head">
+        <div className="avatar-big">{profile && profile.name ? profile.name.trim()[0].toUpperCase() : "👤"}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {editing ? (
+            <div>
+              <div className="field" style={{ marginBottom: 8 }}>
+                <IconUser size={17} />
+                <input placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} aria-label="Full name" />
+              </div>
+              <div className="field" style={{ marginBottom: 8 }}>
+                <IconPhone size={17} />
+                <input placeholder="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)}
+                       inputMode="tel" aria-label="Phone number" />
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="btn btn-gold" style={{ flex: 1, padding: "10px 14px" }} onClick={saveEdit}>Save</button>
+                <button className="btn" style={{ flex: 1, padding: "10px 14px" }} onClick={() => setEditing(false)}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <h2>{profile ? profile.name : "Welcome, guest"}</h2>
+              <p>{profile ? profile.phone : "Set up your profile for faster checkout."}</p>
+              <button className="link" style={{ marginTop: 8, color: "var(--gold)", background: "none", border: "none", padding: 0, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
+                      onClick={startEdit}>
+                {profile ? "Edit profile →" : "Set up profile →"}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="plist">
+        <button className="pitem" onClick={() => navigate("orders")}>
+          <span className="pi"><IconReceipt size={19} /></span> My Orders <span className="chev"><IconChevR size={16} /></span>
+        </button>
+        <button className="pitem" onClick={() => navigate("saved")}>
+          <span className="pi"><IconHeart size={19} /></span> Saved Items
+          {saved.length > 0 && <span style={{ marginLeft: "auto", color: "var(--gold)", fontSize: 12, fontWeight: 800 }}>{saved.length}</span>}
+          <span className="chev"><IconChevR size={16} /></span>
+        </button>
+        <button className="pitem" onClick={() => toast("Settings coming soon", "ok")}>
+          <span className="pi"><IconSettings size={19} /></span> Settings <span className="chev"><IconChevR size={16} /></span>
+        </button>
+        <button className="pitem" onClick={() => {
+          if (config && config.phone) { window.location.href = "tel:" + config.phone; }
+          else toast("Call us: ask your waiter for assistance", "ok");
+        }}>
+          <span className="pi"><IconHelp size={19} /></span> Help &amp; Support <span className="chev"><IconChevR size={16} /></span>
+        </button>
+        {profile && (
+          <button className="pitem danger" onClick={() => { clearProfile(); toast("Logged out", "ok"); }}>
+            <span className="pi"><IconLogout size={19} /></span> Log Out
+          </button>
+        )}
+      </div>
+
+      <div className="brand-foot">
+        <img src="/assets/logo.png" alt="" />
+        <div className="bn">MAHUMBEZI</div>
+        <div className="bs">BAR &amp; RESTAURANT</div>
+        <div className="addr">
+          {config && config.restaurantName ? config.restaurantName : "Mahumbezi Bar & Restaurant"}<br />
+          {config && config.address ? config.address : null}
+          {config && config.phone ? <div>{config.phone}</div> : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ======================================================================
+   App
+====================================================================== */
+function App() {
+  const [route, setRoute] = useState(parseRoute());
+  const [config, setConfig] = useState(null);
+  const [menu, setMenu] = useState([]);
+  const [tables, setTables] = useState([]);
+  const [cart, setCart] = useState(() => LS.get(CART_KEY, []));
+  const [profile, setProfile] = useState(() => LS.get(PROFILE_KEY, null));
+  const [saved, setSaved] = useState(() => LS.get(SAVED_KEY, []));
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("All");
+  const [drawer, setDrawer] = useState(false);
+  const [toastMsg, setToastMsg] = useState(null);
+
+  useEffect(() => {
+    const onHash = () => { setRoute(parseRoute()); setDrawer(false); window.scrollTo(0, 0); };
+    window.addEventListener("hashchange", onHash);
+    if (!window.location.hash) window.location.hash = "#/";
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  useEffect(() => {
+    api("/api/public/config").then(setConfig).catch(() => {});
+    api("/api/public/menu").then(setMenu).catch(() => {});
+    api("/api/public/tables").then(setTables).catch(() => {});
+  }, []);
+
+  useEffect(() => { LS.set(CART_KEY, cart); }, [cart]);
+  useEffect(() => { LS.set(PROFILE_KEY, profile); }, [profile]);
+  useEffect(() => { LS.set(SAVED_KEY, saved); }, [saved]);
+  useEffect(() => {
+    if (!toastMsg) return;
+    const t = setTimeout(() => setToastMsg(null), 2600);
+    return () => clearTimeout(t);
+  }, [toastMsg]);
+
+  const addToCart = useCallback((item, qty) => {
+    setCart((c) => {
+      const found = c.find((i) => i.id === item.id);
+      if (found) return c.map((i) => (i.id === item.id ? { ...i, qty: Math.min(100, i.qty + qty) } : i));
+      return [...c, { id: item.id, name: item.name, price: item.price, emoji: item.emoji, category: item.category, image_url: item.image_url || "", qty }];
+    });
+  }, []);
+
+  const toggleSaved = useCallback((id) => {
+    setSaved((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  }, []);
+
+  const toast = useCallback((msg, kind) => setToastMsg({ msg, kind: kind || "" }), []);
+  const vatRate = config ? config.vatRate : 18;
+
+  const ctx = {
+    config, menu, tables, cart, setCart, profile, saved,
+    search, setSearch, category, setCategory, vatRate, toast,
+    addToCart, toggleSaved,
+    saveProfile: (p) => setProfile(p),
+    clearProfile: () => { setProfile(null); LS.set(LAST_ORDER_KEY, null); },
+    clearCart: () => setCart([]),
+  };
+
+  const backPages = ["product", "cart", "checkout", "success", "tracking", "saved"];
+  const showBack = backPages.includes(route.page);
+
+  let page;
+  switch (route.page) {
+    case "menu": page = <MenuPage />; break;
+    case "product": page = <ProductPage id={route.param} />; break;
+    case "cart": page = <CartPage />; break;
+    case "checkout": page = <CheckoutPage />; break;
+    case "success": page = <SuccessPage id={route.param} />; break;
+    case "tracking": page = <TrackingPage id={route.param} />; break;
+    case "orders": page = <OrdersPage />; break;
+    case "saved": page = <SavedPage />; break;
+    case "profile": page = <ProfilePage />; break;
+    default: page = <HomePage />;
+  }
+
+  return (
+    <AppCtx.Provider value={ctx}>
+      <div className="shell">
+        <Header onMenu={() => setDrawer(true)} onBack={() => window.history.back()} back={showBack} />
+        <main>{page}</main>
+        <BottomNav />
+      </div>
+      <Drawer open={drawer} onClose={() => setDrawer(false)} />
+      {toastMsg && (
+        <div className={"toast " + toastMsg.kind}>
+          {toastMsg.kind === "ok" && <IconCheck size={15} />}
+          {toastMsg.kind === "bad" && <IconClose size={15} />}
+          {toastMsg.msg}
+        </div>
+      )}
+    </AppCtx.Provider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+
+/* Service worker — same one as the admin app */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+  });
+}
+</script>
+</body>
+</html>

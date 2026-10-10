@@ -29,27 +29,35 @@ function seedUsers() {
 
 function seedMenuItems() {
   const items = [
-    { name: "Classic Burger", category: "Food", price: 6000, emoji: "🍔", available: 1 },
-    { name: "Pizza Margherita", category: "Food", price: 9000, emoji: "🍕", available: 1 },
-    { name: "French Fries", category: "Food", price: 3000, emoji: "🍟", available: 1 },
-    { name: "Grilled Chicken", category: "Food", price: 8500, emoji: "🍗", available: 1 },
-    { name: "Beef Brochette", category: "Food", price: 4500, emoji: "🍢", available: 1 },
-    { name: "Caesar Salad", category: "Food", price: 5000, emoji: "🥗", available: 0 },
-    { name: "Mojito", category: "Drinks", price: 4000, emoji: "🍹", available: 1 },
-    { name: "Tusker Beer", category: "Drinks", price: 2500, emoji: "🍺", available: 1 },
-    { name: "Fresh Juice", category: "Drinks", price: 2000, emoji: "🧃", available: 1 },
-    { name: "Coke", category: "Drinks", price: 1000, emoji: "🥤", available: 1 },
-    { name: "Whisky (double)", category: "Bar", price: 9000, emoji: "🥃", available: 1 },
-    { name: "Red Wine (glass)", category: "Bar", price: 5000, emoji: "🍷", available: 0 },
+    { name: "Classic Burger", category: "Food", price: 6000, emoji: "🍔", available: 1, description: "Juicy beef patty, cheddar, lettuce & house sauce in a toasted brioche bun." },
+    { name: "Pizza Margherita", category: "Food", price: 9000, emoji: "🍕", available: 1, description: "Stone-baked with San Marzano tomato, fresh mozzarella and basil." },
+    { name: "French Fries", category: "Food", price: 3000, emoji: "🍟", available: 1, description: "Crispy golden fries with a light salt and rosemary dusting." },
+    { name: "Grilled Chicken", category: "Food", price: 8500, emoji: "🍗", available: 1, description: "Flame-grilled half chicken marinated in garlic, herbs and lemon." },
+    { name: "Beef Brochette", category: "Food", price: 4500, emoji: "🍢", available: 1, description: "Tender beef skewers grilled over charcoal, served with kachumbari." },
+    { name: "Caesar Salad", category: "Food", price: 5000, emoji: "🥗", available: 0, description: "Crisp romaine, parmesan shavings, croutons and creamy Caesar dressing." },
+    { name: "Mojito", category: "Drinks", price: 4000, emoji: "🍹", available: 1, description: "White rum, fresh mint, lime and soda — shaken ice cold." },
+    { name: "Tusker Beer", category: "Drinks", price: 2500, emoji: "🍺", available: 1, description: "Ice-cold Kenyan lager, served in a chilled glass." },
+    { name: "Fresh Juice", category: "Drinks", price: 2000, emoji: "🧃", available: 1, description: "Freshly squeezed seasonal fruit juice — ask for today's flavour." },
+    { name: "Coke", category: "Drinks", price: 1000, emoji: "🥤", available: 1, description: "Chilled Coca-Cola, 300ml bottle." },
+    { name: "Whisky (double)", category: "Bar", price: 9000, emoji: "🥃", available: 1, description: "Double measure of premium whisky — neat, on the rocks or with water." },
+    { name: "Red Wine (glass)", category: "Bar", price: 5000, emoji: "🍷", available: 0, description: "Full-bodied house red, served by the glass." },
   ];
   const insert = db.prepare(
-    `INSERT INTO menu_items (name, category, price, emoji, available) VALUES (?, ?, ?, ?, ?)`
+    `INSERT INTO menu_items (name, category, price, emoji, available, description) VALUES (?, ?, ?, ?, ?, ?)`
   );
   const count = db.prepare("SELECT COUNT(*) AS c FROM menu_items").get().c;
   if (count === 0) {
-    for (const i of items) insert.run(i.name, i.category, i.price, i.emoji, i.available);
+    for (const i of items) insert.run(i.name, i.category, i.price, i.emoji, i.available, i.description);
     console.log(`Seeded ${items.length} menu items.`);
   }
+  // Existing databases (seeded before descriptions existed) get them
+  // backfilled by name so the customer menu never shows blank copy.
+  const backfill = db.prepare("UPDATE menu_items SET description = ? WHERE name = ? AND (description IS NULL OR description = '')");
+  let filled = 0;
+  for (const i of items) {
+    if (backfill.run(i.description, i.name).changes > 0) filled++;
+  }
+  if (filled > 0) console.log(`Backfilled descriptions for ${filled} menu items.`);
 }
 
 function seedTables() {
@@ -176,6 +184,22 @@ function seedOrders() {
   const insertItem = db.prepare(
     `INSERT INTO order_items (order_id, menu_item_id, name, price, qty) VALUES (?, ?, ?, ?, ?)`
   );
+  // Seed the ledger too: the invariant "every Paid order has exactly one
+  // successful payment_transactions row" (enforced by a unique index since
+  // migration 012) should hold from the very first database, and the
+  // Transaction Ledger panel would otherwise open on demo data showing
+  // revenue with no payments behind it.
+  const insertPayment = db.prepare(
+    `INSERT INTO payment_transactions
+       (order_id, provider, amount, status, method, currency, created_at, updated_at)
+     VALUES (?, ?, ?, 'succeeded', ?, ?, datetime('now', ?), datetime('now', ?))`
+  );
+  const insertEbm = db.prepare(
+    `INSERT INTO ebm_invoices (order_id, status) VALUES (?, 'not_submitted')
+     ON CONFLICT(order_id) DO NOTHING`
+  );
+  const PROVIDER_BY_METHOD = { Cash: "cash", Card: "card", "Mobile Money": "mock" };
+  const seedCurrency = (db.prepare("SELECT currency FROM settings WHERE id = 1").get() || {}).currency || "RWF";
 
   const createOrder = db.transaction(() => {
     for (const [table, offset, status, method, items] of specs) {
@@ -186,6 +210,10 @@ function seedOrders() {
       for (const [name, qty] of items) {
         const m = named(name);
         insertItem.run(info.lastInsertRowid, m.id, m.name, m.price, qty);
+      }
+      if (status === "Paid") {
+        insertPayment.run(info.lastInsertRowid, PROVIDER_BY_METHOD[method], total, method, seedCurrency, offset, offset);
+        insertEbm.run(info.lastInsertRowid);
       }
     }
   });

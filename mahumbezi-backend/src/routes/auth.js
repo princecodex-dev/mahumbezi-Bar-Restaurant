@@ -196,4 +196,4 @@ router.put("/password", requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-module.exports = router;
+module.exports = { router, signTokens, publicUser };

@@ -5,20 +5,27 @@ const { isNonNegativeNumber, isPositiveInt } = require("../lib/validate");
 const cache = require("../lib/reportCache");
 const audit = require("../lib/audit");
 const payments = require("../lib/payments");
-const ebm = require("../lib/ebm");
+const { loadOrder, markOrderPaid } = require("../lib/orderPaid");
 
 const router = express.Router();
 router.use(requireAuth);
 
-const VALID_STATUSES = ["Preparing", "Served", "Paid"];
-const VALID_METHODS = ["Cash", "Mobile Money", "Card"];
+// Full lifecycle including the guest-facing statuses (Received/Accepted/
+// Ready) that customer QR orders start and move through; staff POS orders
+// still begin at "Preparing".
+const VALID_STATUSES = ["Received", "Accepted", "Preparing", "Ready", "Served", "Paid"];
+// MTN MoMo and Airtel Money are separate methods so the cashier says which
+// network is charging, and the ledger names it. "Mobile Money" without a
+// network is still accepted for older clients; it resolves to whichever
+// provider MOBILE_MONEY_PROVIDER names.
+const VALID_METHODS = ["Cash", "Card", "MTN MoMo", "Airtel Money", "Mobile Money"];
 const VALID_DISCOUNT_TYPES = ["percent", "fixed"];
 
-function loadOrder(id) {
-  const order = db.prepare("SELECT * FROM orders WHERE id = ?").get(id);
-  if (!order) return null;
-  order.items = db.prepare("SELECT * FROM order_items WHERE order_id = ?").all(id);
-  return order;
+// A partial unique index (migration 012) already stops a second *succeeded*
+// payment from being written for one order; this turns the resulting SQLite
+// error into a clean 409 instead of a 500 when two requests race.
+function isUniqueViolation(err) {
+  return String((err && err.code) || "").startsWith("SQLITE_CONSTRAINT");
 }
 
 // How much of each inventory item one unit of a menu item consumes,
@@ -163,63 +170,117 @@ router.post("/", (req, res) => {
   res.status(201).json(loadOrder(orderId));
 });
 
-// Update status (Preparing -> Served -> Paid). Paid requires a payment method.
+// Update status (Received -> Accepted -> Preparing -> Ready -> Served ->
+// Paid). Paid requires a payment method and the Cashier/Admin/Manager role.
+//
 // Marking an order Paid also frees its table (unless another open order is
-// still on it), records a payment_transactions row (see src/lib/payments),
-// and records an ebm_invoices row (see src/lib/ebm — not real fiscalisation
-// yet, just keeps the data model consistent).
+// still on it), records a payment_transactions row (src/lib/payments), and
+// records an ebm_invoices row (src/lib/ebm — not real fiscalisation yet).
+//
+// Guards that matter here:
+//   * an order already in Paid can neither be paid again nor moved back out
+//     of Paid. Paying twice would double-record revenue; moving *out* of Paid
+//     would silently remove it from revenue while its payment row stays in
+//     the ledger. Reversing money needs a refund flow, which doesn't exist.
+//   * the "already paid" check is re-done inside the DB transaction by
+//     markOrderPaid, so two simultaneous clicks cannot both win.
 router.patch("/:id/status", async (req, res) => {
   const existing = db.prepare("SELECT * FROM orders WHERE id = ?").get(req.params.id);
   if (!existing) return res.status(404).json({ error: "Order not found" });
 
-  const { status, method } = req.body || {};
+  const { status, method, phone } = req.body || {};
   if (!VALID_STATUSES.includes(status)) {
     return res.status(400).json({ error: `status must be one of: ${VALID_STATUSES.join(", ")}` });
   }
 
-  if (status === "Paid" && (!method || !VALID_METHODS.includes(method))) {
-    return res.status(400).json({ error: `method must be one of: ${VALID_METHODS.join(", ")} when marking an order Paid` });
-  }
-
-  // Payment recording can involve a real network call to a payment gateway
-  // (once one is configured — see src/lib/payments), so it happens before
-  // the synchronous DB transaction, not inside it. If it fails, the order
-  // is NOT marked Paid.
   if (status === "Paid") {
+    if (!method || !VALID_METHODS.includes(method)) {
+      return res.status(400).json({ error: `method must be one of: ${VALID_METHODS.join(", ")} when marking an order Paid` });
+    }
+    if (!payments.PAYMENT_ROLES.includes(req.user.role)) {
+      return res
+        .status(403)
+        .json({ error: `Only ${payments.PAYMENT_ROLES.join(", ")} can record payments`, code: "FORBIDDEN" });
+    }
+    if (existing.status === "Paid") {
+      return res.status(409).json({ error: "Order is already paid", code: "ALREADY_PAID" });
+    }
+
+    const customerPhone = String(phone || "").trim() || String(existing.phone || "").trim();
+    const needsPhone = payments.MOBILE_MONEY_METHODS.includes(method);
+    if (needsPhone && payments.mode() === "live" && !customerPhone) {
+      return res
+        .status(400)
+        .json({ error: `A customer phone number is required to push an ${method} payment request` });
+    }
+
+    // Payment recording can involve a real network call to a gateway (see
+    // src/lib/payments), so it happens before the synchronous DB transaction.
+    let tx;
     try {
-      await payments.recordPayment({ orderId: existing.id, method, amount: existing.total });
+      tx = await payments.recordPayment({
+        orderId: existing.id,
+        method,
+        amount: existing.total,
+        phone: customerPhone,
+        userId: req.user.id,
+      });
     } catch (err) {
+      if (isUniqueViolation(err)) {
+        return res.status(409).json({ error: "Order is already paid", code: "ALREADY_PAID" });
+      }
       return res.status(502).json({ error: `Payment could not be recorded: ${err.message}` });
     }
+
+    // Live Mobile Money: the customer hasn't approved on their handset yet.
+    // The order stays unpaid; the cashier polls GET /api/payments/:id, which
+    // settles the order as soon as the gateway confirms.
+    if (tx.status === "pending") {
+      return res.status(202).json({
+        pending: true,
+        code: "AWAITING_CUSTOMER",
+        message: `Payment request sent — waiting for the customer to approve on ${customerPhone}`,
+        transactionId: tx.id,
+        orderId: existing.id,
+      });
+    }
+    if (tx.status !== "succeeded") {
+      return res
+        .status(502)
+        .json({ error: tx.error || "Payment failed", code: "PAYMENT_FAILED", transactionId: tx.id });
+    }
+
+    try {
+      return res.json(markOrderPaid(existing.id, method, req));
+    } catch (err) {
+      if (err.code === "ALREADY_PAID") {
+        return res.status(409).json({ error: "Order is already paid", code: "ALREADY_PAID" });
+      }
+      if (err.code === "NOT_FOUND") return res.status(404).json({ error: "Order not found" });
+      throw err;
+    }
   }
 
-  const freeTableOnPaid = db.prepare(
-    `UPDATE tables
-     SET status = 'Available'
-     WHERE status IN ('Occupied', 'Ordering')
-       AND name = ?
-       AND NOT EXISTS (
-         SELECT 1 FROM orders o2
-         WHERE o2.table_name = ? AND o2.status != 'Paid' AND o2.id != ?
-       )`
-  );
-  const markPaid = db.prepare("UPDATE orders SET status = ?, method = ? WHERE id = ?");
+  if (existing.status === "Paid") {
+    return res
+      .status(409)
+      .json({ error: "Order is paid and cannot be moved to another status", code: "ALREADY_PAID" });
+  }
 
   const applyStatus = db.transaction(() => {
-    if (status === "Paid") {
-      markPaid.run(status, method, req.params.id);
-      freeTableOnPaid.run(existing.table_name, existing.table_name, req.params.id);
-      ebm.recordUnfiscalised(existing.id);
-    } else {
-      db.prepare("UPDATE orders SET status = ? WHERE id = ?").run(status, req.params.id);
-    }
+    const current = db.prepare("SELECT status FROM orders WHERE id = ?").get(existing.id);
+    if (!current || current.status === "Paid") return false;
+    db.prepare("UPDATE orders SET status = ? WHERE id = ?").run(status, existing.id);
+    return true;
   });
 
-  applyStatus();
-  cache.invalidate();
-  if (status === "Paid") {
-    audit.log(req, "order.paid", { entity: "order", entityId: req.params.id, detail: `${existing.table_name} · ${method} · ${existing.total}` });
+  if (!applyStatus()) {
+    return res
+      .status(409)
+      .json({ error: "Order is paid and cannot be moved to another status", code: "ALREADY_PAID" });
   }
+
+  cache.invalidate();
   res.json(loadOrder(req.params.id));
 });
 

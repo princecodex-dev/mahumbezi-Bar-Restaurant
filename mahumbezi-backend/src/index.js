@@ -15,7 +15,8 @@ if (!process.env.JWT_SECRET) {
 
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
-const authRoutes = require("./routes/auth");
+const { router: authRoutes } = require("./routes/auth");
+const googleAuthRoutes = require("./routes/googleAuth");
 const menuItemRoutes = require("./routes/menuItems");
 const tableRoutes = require("./routes/tables");
 const orderRoutes = require("./routes/orders");
@@ -27,6 +28,8 @@ const settingsRoutes = require("./routes/settings");
 const reportRoutes = require("./routes/reports");
 const activityRoutes = require("./routes/activity");
 const receiptRoutes = require("./routes/receipts");
+const paymentRoutes = require("./routes/payments");
+const publicRoutes = require("./routes/public");
 
 const app = express();
 
@@ -51,11 +54,13 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "https://cdnjs.cloudflare.com", "'unsafe-inline'", "'unsafe-eval'"],
+        scriptSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://accounts.google.com", "'unsafe-inline'", "'unsafe-eval'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:"],
-        connectSrc: ["'self'", "https://cdnjs.cloudflare.com"],
+        imgSrc: ["'self'", "data:", "https://lh3.googleusercontent.com"],
+        connectSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://accounts.google.com"],
         fontSrc: ["'self'"],
+        frameSrc: ["'self'", "https://accounts.google.com"],
+        childSrc: ["'self'", "https://accounts.google.com"],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         frameAncestors: ["'self'"],
@@ -107,7 +112,12 @@ app.use(
 
 app.get("/api/health", (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 
+// No-auth customer ordering API (public/customer.html) — mounted before the
+// staff routes purely for readability; each router applies its own auth.
+app.use("/api/public", publicRoutes);
+
 app.use("/api/auth", authRoutes);
+app.use("/api/auth", googleAuthRoutes);
 app.use("/api/menu-items", menuItemRoutes);
 app.use("/api/tables", tableRoutes);
 app.use("/api/orders", orderRoutes);
@@ -118,11 +128,17 @@ app.use("/api/employees", employeeRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/activity", activityRoutes);
+app.use("/api/payments", paymentRoutes); // ledger + live Mobile Money polling
 app.use("/api/orders", receiptRoutes); // adds GET /api/orders/:id/receipt
 
 // Serve the connected frontend (public/index.html + any assets) from the same
 // server, so the app works same-origin with no CORS/API-URL config needed.
 app.use(express.static(path.join(__dirname, "..", "public")));
+
+// Customer ordering SPA — separate page so the admin dashboard is untouched.
+app.get("/customer", (req, res) =>
+  res.sendFile(path.join(__dirname, "..", "public", "customer.html"))
+);
 
 // 404 handler
 app.use((req, res) => res.status(404).json({ error: "Not found" }));

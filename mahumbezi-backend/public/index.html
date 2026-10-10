@@ -23,8 +23,7 @@
 <link rel="apple-touch-icon" sizes="167x167" href="/assets/icons/icon-192x192.png" />
 
 <!-- Favicon -->
-<link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/icon-32x32.png" />
-<link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/icon-16x16.png" />
+<link rel="icon" type="image/png" href="/assets/favicon.png?v=2" />
 <link rel="mask-icon" href="/assets/icons/icon-512x512.png" color="#e0ac3a" />
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -51,6 +50,8 @@
     --purple-bg: #211a34;
     --red: #ff6b6b;
     --red-bg: #331919;
+    --teal: #35c8d0;
+    --teal-bg: #0f2b2e;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
@@ -226,6 +227,9 @@
   .pill-preparing { background: var(--orange-bg); color: var(--orange); }
   .pill-served { background: var(--green-bg); color: var(--green); }
   .pill-paid { background: var(--blue-bg); color: var(--blue); }
+  .pill-received { background: var(--purple-bg); color: var(--purple); }
+  .pill-accepted { background: rgba(224,172,58,0.16); color: var(--gold); }
+  .pill-ready { background: var(--teal-bg); color: var(--teal); }
   .pill-outofstock { background: var(--red-bg); color: var(--red); }
   .pill-vip { background: rgba(224,172,58,0.16); color: var(--gold); }
   .food-thumb { width: 30px; height: 30px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; background: #22262e; }
@@ -466,6 +470,10 @@
     color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; margin-bottom: 10px;
   }
   .login-social:hover { border-color: var(--gold-dim); }
+  .login-social:disabled { opacity: 0.6; cursor: progress; }
+  .login-social:disabled:hover { border-color: var(--border); }
+  #google-btn:empty { display: none; }
+  #google-btn { display: flex; justify-content: center; margin-bottom: 10px; }
 
   .login-footer { text-align: center; font-size: 12px; color: var(--text-dim); margin-top: 18px; }
   .login-footer button { background: none; border: none; color: var(--gold); font-weight: 600; cursor: pointer; padding: 0; font-size: 12px; text-decoration: underline; }
@@ -771,7 +779,10 @@ async function apiRequest(path, { method = "GET", body, auth = true, _retried = 
     if (ok) return apiRequest(path, { method, body, auth, _retried: true });
   }
   if (!res.ok) {
-    throw new Error((data && data.error) || ("Request failed (" + res.status + ")"));
+    const err = new Error((data && data.error) || ("Request failed (" + res.status + ")"));
+    err.status = res.status;
+    err.code = data && data.code;
+    throw err;
   }
   return data;
 }
@@ -796,6 +807,9 @@ const api = {
   getOrders: () => apiRequest("/orders"),
   createOrder: (data) => apiRequest("/orders", { method: "POST", body: data }),
   updateOrderStatus: (id, data) => apiRequest("/orders/" + id + "/status", { method: "PATCH", body: data }),
+
+  getPayments: () => apiRequest("/payments?limit=200"),
+  getPayment: (id) => apiRequest("/payments/" + id),
 
   getInventory: () => apiRequest("/inventory"),
   createInventoryItem: (data) => apiRequest("/inventory", { method: "POST", body: data }),
@@ -823,6 +837,44 @@ const api = {
 
   getReportsSummary: () => apiRequest("/reports/summary"),
 };
+
+/**
+ * The receipt endpoint streams a PDF and requires the bearer token, so it
+ * can't just be window.open()'d — a new tab wouldn't carry the header.
+ * Fetch it as a blob with auth, then open/print the object URL.
+ */
+async function printReceipt(orderId) {
+  const headers = {};
+  if (authToken) headers["Authorization"] = "Bearer " + authToken;
+  const res = await fetch(API_BASE + "/orders/" + orderId + "/receipt", { headers });
+  if (!res.ok) throw new Error("Could not load receipt (" + res.status + ")");
+  const url = URL.createObjectURL(await res.blob());
+  const win = window.open(url, "_blank");
+  if (!win) {
+    // Popup blocked — fall back to a download so the receipt still lands.
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "receipt-" + orderId + ".pdf";
+    a.click();
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+/** Poll a live Mobile Money transaction until it settles or we give up. */
+async function pollPaymentUntilSettled(transactionId, onStatus, { timeoutMs = 90000, intervalMs = 2500 } = {}) {
+  const startedAt = Date.now();
+  let last = null;
+  while (Date.now() - startedAt < timeoutMs) {
+    await new Promise((r) => setTimeout(r, intervalMs));
+    last = await api.getPayment(transactionId);
+    if (last.status === "succeeded" || last.status === "failed") return last;
+    if (onStatus) {
+      const secs = Math.round((Date.now() - startedAt) / 1000);
+      onStatus(`Waiting for the customer to approve on their phone… ${secs}s`);
+    }
+  }
+  return last || { status: "pending", error: "Timed out waiting for the customer to approve" };
+}
 
 /* ---- map snake_case API rows to the camelCase shape the UI expects ---- */
 
@@ -856,6 +908,8 @@ function mapOrder(o) {
     total: o.total,
     status: o.status,
     method: o.method,
+    customerName: o.customer_name || "",
+    phone: o.phone || "",
     time: toLocalTime(o.created_at),
   };
 }
@@ -922,14 +976,18 @@ function supplierStatusPillClass(status) {
   return status === "Active" ? "pill pill-served" : "pill pill-outofstock";
 }
 
-const PAYMENT_METHODS = ["Cash", "Mobile Money", "Card"];
-const METHOD_FILTERS = ["All", "Cash", "Mobile Money", "Card"];
-const METHOD_ICON = { "Cash": "💵", "Mobile Money": "📱", "Card": "💳" };
+const PAYMENT_METHODS = ["Cash", "Card", "MTN MoMo", "Airtel Money"];
+const METHOD_FILTERS = ["All", "Cash", "Card", "MTN MoMo", "Airtel Money"];
+const METHOD_ICON = { "Cash": "💵", "Card": "💳", "MTN MoMo": "📱", "Airtel Money": "📲" };
+// Cash and Card settle in the room. The two networks push a prompt to the
+// customer's handset, so they need a phone number — and the backend charges
+// whichever network was named, not one that's configured globally.
+const MOBILE_MONEY_METHODS = ["MTN MoMo", "Airtel Money"];
 
 function methodPillClass(method) {
   if (method === "Cash") return "pill pill-served";
-  if (method === "Mobile Money") return "pill pill-vip";
   if (method === "Card") return "pill pill-paid";
+  if (MOBILE_MONEY_METHODS.includes(method)) return "pill pill-vip";
   return "pill";
 }
 
@@ -958,13 +1016,16 @@ const QUICK_ACTIONS = [
 
 
 const CATEGORIES = ["All", "Food", "Drinks", "Bar"];
-const STATUS_FILTERS = ["All", "Preparing", "Served", "Paid"];
-const STATUS_CYCLE = ["Preparing", "Served", "Paid"];
+const STATUS_FILTERS = ["All", "Received", "Accepted", "Preparing", "Ready", "Served", "Paid"];
+const STATUS_CYCLE = ["Received", "Accepted", "Preparing", "Ready", "Served", "Paid"];
 
 function fmt(n) { return "RWF " + n.toLocaleString(); }
 
 function statusPillClass(status) {
+  if (status === "Received") return "pill pill-received";
+  if (status === "Accepted") return "pill pill-accepted";
   if (status === "Preparing") return "pill pill-preparing";
+  if (status === "Ready") return "pill pill-ready";
   if (status === "Served") return "pill pill-served";
   return "pill pill-paid";
 }
@@ -1268,7 +1329,7 @@ function SalesChart({ data }) {
   );
 }
 
-const QA_ROUTES = { "New Order": "Orders / POS", "Add Stock": "Inventory / Stock", "View Reports": "Reports", "Make Payment": "Sales & Payments" };
+const QA_ROUTES = { "New Order": "Orders / POS", "Add Stock": "Inventory / Stock", "View Reports": "Reports", "Make Payment": "Sales & Payments", "Print Receipt": "Sales & Payments" };
 
 function QuickActions({ onNavigate }) {
   return (
@@ -1428,7 +1489,7 @@ function ActiveOrders({ orders, onCycleStatus }) {
       <div className="panel-head">
         <div className="panel-title">📋 Active Orders</div>
       </div>
-      <div className="status-tabs">
+      <div className="status-tabs" style={{ flexWrap: "wrap" }}>
         {STATUS_FILTERS.map(s => (
           <button key={s} className={"status-tab" + (filter === s ? " active" : "")} onClick={() => setFilter(s)}>{s}</button>
         ))}
@@ -1485,10 +1546,13 @@ function OrdersPOS({ orders, menuItems, tables, vatRate, reload }) {
   }
 
   async function cycleStatus(order) {
-    // Preparing <-> Served here; marking Paid requires a payment method,
-    // which is collected in Sales & Payments.
+    // Guest orders advance forward through the lifecycle
+    // (Received -> Accepted -> Preparing -> Ready -> Served); staff POS
+    // orders keep the original Preparing <-> Served toggle. Marking Paid
+    // requires a payment method, collected in Sales & Payments.
     if (order.status === "Paid") return;
-    const next = order.status === "Preparing" ? "Served" : "Preparing";
+    const forward = { Received: "Accepted", Accepted: "Preparing", Ready: "Served" };
+    const next = forward[order.status] || (order.status === "Preparing" ? "Served" : "Preparing");
     try {
       await api.updateOrderStatus(order.id, { status: next });
       await reload();
@@ -2256,8 +2320,31 @@ function SuppliersPage({ suppliers, reload }) {
 
 function RecordPaymentModal({ order, onCancel, onSave }) {
   const [method, setMethod] = useState("Cash");
+  const [phone, setPhone] = useState(order.phone || "");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+  const needsPhone = MOBILE_MONEY_METHODS.includes(method);
+
+  async function submit() {
+    // Guarded: a second click while the first is in flight can't fire a
+    // second PATCH (the backend rejects it too, but don't rely on that).
+    if (busy) return;
+    if (needsPhone && !phone.trim()) {
+      setNote("Enter the customer's phone number to send the payment request.");
+      return;
+    }
+    setBusy(true);
+    setNote("");
+    try {
+      await onSave(order.id, method, phone.trim(), (msg) => setNote(msg));
+    } catch (err) {
+      setNote(err.message);
+      setBusy(false);
+    }
+  }
+
   return (
-    <div className="modal-backdrop" onClick={onCancel}>
+    <div className="modal-backdrop" onClick={busy ? undefined : onCancel}>
       <div className="modal-card" onClick={e => e.stopPropagation()}>
         <div className="panel-title" style={{ marginBottom: "6px" }}>Record Payment — #{order.id}</div>
         <p style={{ fontSize: "12.5px", color: "var(--text-dim)", margin: "0 0 16px" }}>
@@ -2266,12 +2353,36 @@ function RecordPaymentModal({ order, onCancel, onSave }) {
         <label className="field-label">Payment Method</label>
         <div className="cat-tabs">
           {PAYMENT_METHODS.map(m => (
-            <button key={m} className={"cat-tab" + (method === m ? " active" : "")} onClick={() => setMethod(m)}>{METHOD_ICON[m]} {m}</button>
+            <button key={m} className={"cat-tab" + (method === m ? " active" : "")} disabled={busy} onClick={() => setMethod(m)}>{METHOD_ICON[m]} {m}</button>
           ))}
         </div>
+
+        {needsPhone && (
+          <div style={{ marginTop: "14px" }}>
+            <label className="field-label">Customer {method} Number</label>
+            <input
+              className="table-select"
+              type="tel"
+              placeholder="078 123 4567"
+              value={phone}
+              disabled={busy}
+              onChange={e => setPhone(e.target.value)}
+            />
+            <p style={{ fontSize: "11.5px", color: "var(--text-dim)", margin: "6px 0 0" }}>
+              A payment prompt is pushed to this number; the order is only marked Paid once the customer enters their PIN.
+            </p>
+          </div>
+        )}
+
+        {note && (
+          <div className="toast" style={{ background: "var(--red-bg)", color: "var(--red)", marginTop: "12px" }}>{note}</div>
+        )}
+
         <div className="modal-actions">
-          <button className="btn-secondary" onClick={onCancel}>Cancel</button>
-          <button className="place-order-btn" style={{ marginTop: 0 }} onClick={() => onSave(order.id, method)}>Confirm Payment</button>
+          <button className="btn-secondary" onClick={onCancel} disabled={busy}>Cancel</button>
+          <button className="place-order-btn" style={{ marginTop: 0 }} disabled={busy} onClick={submit}>
+            {busy ? "Processing…" : "Confirm Payment"}
+          </button>
         </div>
       </div>
     </div>
@@ -2282,6 +2393,8 @@ function SalesPayments({ orders, reload }) {
   const [methodFilter, setMethodFilter] = useState("All");
   const [payingOrder, setPayingOrder] = useState(null);
   const [error, setError] = useState("");
+  const [ledger, setLedger] = useState([]);
+  const [receiptBusy, setReceiptBusy] = useState(null);
 
   const paidOrders = orders.filter(o => o.status === "Paid");
   const awaitingOrders = orders.filter(o => o.status !== "Paid");
@@ -2295,12 +2408,37 @@ function SalesPayments({ orders, reload }) {
     total: paidOrders.filter(o => o.method === m).reduce((s, o) => s + o.total, 0),
   }));
 
-  async function confirmPayment(orderId, method) {
-    try {
-      await api.updateOrderStatus(orderId, { status: "Paid", method });
-      await reload();
-      setPayingOrder(null);
-    } catch (err) { setError(err.message); }
+  async function loadLedger() {
+    try { setLedger(await api.getPayments()); } catch { /* non-fatal: panel stays empty */ }
+  }
+  useEffect(() => { loadLedger(); }, []);
+
+  /**
+   * Cash/Card and mock Mobile Money settle inside the PATCH itself. In live
+   * mode the PATCH answers 202 and we keep asking the backend for the
+   * transaction until the customer approves (or we time out), then refresh.
+   */
+  async function confirmPayment(orderId, method, phone, onStatus) {
+    const res = await api.updateOrderStatus(orderId, { status: "Paid", method, phone });
+    if (res && res.pending) {
+      onStatus && onStatus(res.message || "Waiting for the customer to approve…");
+      const settled = await pollPaymentUntilSettled(res.transactionId, onStatus);
+      if (settled.status !== "succeeded") {
+        throw new Error(settled.error || "The customer did not complete the payment. Try again.");
+      }
+    }
+    await reload();
+    await loadLedger();
+    setPayingOrder(null);
+  }
+
+  async function showReceipt(orderId) {
+    if (receiptBusy) return;
+    setReceiptBusy(orderId);
+    setError("");
+    try { await printReceipt(orderId); }
+    catch (err) { setError(err.message); }
+    finally { setReceiptBusy(null); }
   }
 
   return (
@@ -2348,9 +2486,16 @@ function SalesPayments({ orders, reload }) {
             <tbody>
               {awaitingOrders.map(o => (
                 <tr key={o.id}>
-                  <td className="id-cell">#{o.id}</td>
-                  <td>{o.table}</td>
-                  <td>{o.items}</td>
+              <td className="id-cell">#{o.id}</td>
+              <td>
+                {o.table}
+                {o.customerName && (
+                  <div style={{ fontSize: "11px", color: "var(--text-faint)", marginTop: "2px" }}>
+                    {o.customerName}{o.phone ? " · " + o.phone : ""}
+                  </div>
+                )}
+              </td>
+              <td>{o.items}</td>
                   <td>{fmt(o.total)}</td>
                   <td><span className={statusPillClass(o.status)}>{o.status}</span></td>
                   <td><button className="icon-btn" title="Record Payment" onClick={() => setPayingOrder(o)}>💳</button></td>
@@ -2395,7 +2540,7 @@ function SalesPayments({ orders, reload }) {
         </div>
         <table>
           <thead>
-            <tr><th>#</th><th>Table</th><th>Items</th><th>Total</th><th>Method</th><th>Time</th></tr>
+            <tr><th>#</th><th>Table</th><th>Items</th><th>Total</th><th>Method</th><th>Time</th><th></th></tr>
           </thead>
           <tbody>
             {filteredPaid.map(o => (
@@ -2406,10 +2551,59 @@ function SalesPayments({ orders, reload }) {
                 <td>{fmt(o.total)}</td>
                 <td><span className={methodPillClass(o.method)}>{o.method || "—"}</span></td>
                 <td className="id-cell">{o.time}</td>
+                <td>
+                  <button
+                    className="icon-btn"
+                    title="Print receipt"
+                    disabled={receiptBusy === o.id}
+                    onClick={() => showReceipt(o.id)}
+                  >{receiptBusy === o.id ? "…" : "🖨️"}</button>
+                </td>
               </tr>
             ))}
             {filteredPaid.length === 0 && (
-              <tr><td colSpan="6" style={{ textAlign: "center", color: "var(--text-faint)", padding: "20px 0" }}>No payments for this filter yet.</td></tr>
+              <tr><td colSpan="7" style={{ textAlign: "center", color: "var(--text-faint)", padding: "20px 0" }}>No payments for this filter yet.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="panel">
+        <div className="panel-head">
+          <div className="panel-title">📒 Transaction Ledger</div>
+          <button className="btn-secondary" style={{ marginLeft: "auto" }} onClick={loadLedger}>Refresh</button>
+        </div>
+        <p style={{ fontSize: "12px", color: "var(--text-dim)", margin: "0 0 12px" }}>
+          Every payment attempt as the backend recorded it — including failed and still-pending
+          Mobile Money requests, which never appear as paid orders.
+        </p>
+        <table>
+          <thead>
+            <tr><th>#</th><th>Order</th><th>Method</th><th>Provider</th><th>Reference</th><th>Amount</th><th>Status</th><th>Taken by</th><th>Time</th></tr>
+          </thead>
+          <tbody>
+            {ledger.map(t => (
+              <tr key={t.id}>
+                <td className="id-cell">#{t.id}</td>
+                <td className="id-cell">#{t.order_id} {t.table_name ? "· " + t.table_name : ""}</td>
+                <td><span className={methodPillClass(t.method)}>{t.method || "—"}</span></td>
+                <td>{t.provider || "—"}</td>
+                <td className="id-cell">{t.provider_reference ? t.provider_reference.slice(0, 8) : "—"}</td>
+                <td>{fmt(t.amount)}</td>
+                <td>
+                  <span className={"pill " + (t.status === "succeeded" ? "pill-served" : t.status === "failed" ? "pill-outofstock" : "pill-preparing")}>
+                    {t.status}
+                  </span>
+                  {t.error && (
+                    <div style={{ fontSize: "11px", color: "var(--red)", marginTop: "2px" }}>{t.error}</div>
+                  )}
+                </td>
+                <td>{t.taken_by_name || "—"}</td>
+                <td className="id-cell">{t.created_at}</td>
+              </tr>
+            ))}
+            {ledger.length === 0 && (
+              <tr><td colSpan="9" style={{ textAlign: "center", color: "var(--text-faint)", padding: "20px 0" }}>No payment transactions recorded yet.</td></tr>
             )}
           </tbody>
         </table>
@@ -2905,6 +3099,96 @@ function LoginScreen({ onLoggedIn }) {
     setNote(`Signing in with ${provider} isn't set up for this restaurant yet — use your email and password below.`);
   }
 
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleFallback, setGoogleFallback] = useState(false);
+
+  function loadGoogleScript() {
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      return Promise.resolve();
+    }
+    return new Promise((resolve, reject) => {
+      const existing = document.querySelector('script[src*="accounts.google.com/gsi/client"]');
+      if (existing) {
+        existing.addEventListener('load', () => resolve());
+        existing.addEventListener('error', () => reject(new Error('Google sign-in failed to load')));
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Google sign-in failed to load'));
+      document.head.appendChild(script);
+    });
+  }
+
+  // Turns the Google ID token into a real Mahumbezi session on the backend.
+  async function exchangeGoogleCredential(credential) {
+    const res = await fetch(API_BASE + '/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential, remember }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || 'Google sign-in failed (' + res.status + ')');
+    }
+    onLoggedIn(data.token, data.refreshToken, data.user, remember);
+  }
+
+  async function handleGoogleSignIn() {
+    if (googleLoading) return; // block duplicate clicks while busy
+    setError('');
+    setNote('');
+    setGoogleLoading(true);
+    try {
+      const cfg = await fetch(API_BASE + '/auth/google/config').then(r => r.json());
+      if (!cfg.configured || !cfg.clientId) {
+        setNote('Google sign-in is not configured yet — add GOOGLE_CLIENT_ID to the backend .env, or use your email and password below.');
+        setGoogleLoading(false);
+        return;
+      }
+      await loadGoogleScript();
+      window.google.accounts.id.initialize({
+        client_id: cfg.clientId,
+        callback: async (response) => {
+          try {
+            await exchangeGoogleCredential(response.credential);
+          } catch (err) {
+            setError(err.message || 'Google sign-in failed. Please try again.');
+          } finally {
+            setGoogleLoading(false);
+          }
+        },
+        cancel_on_tap_outside: false,
+      });
+      window.google.accounts.id.prompt((notification) => {
+        // One Tap can't be shown (popups blocked, no Google session, FedCM
+        // restrictions…). Fall back to an explicit Google-rendered button.
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          const target = document.getElementById('google-btn');
+          if (target) {
+            window.google.accounts.id.renderButton(target, {
+              type: 'standard', theme: 'outline', size: 'large',
+              width: 300, text: 'continue_with',
+            });
+            setGoogleFallback(true);
+          }
+          setGoogleLoading(false);
+        } else {
+          // Dialog is open — release our button so a cancel can be retried.
+          setGoogleLoading(false);
+        }
+      });
+    } catch (err) {
+      setError(err.message === 'Google sign-in failed to load'
+        ? "Couldn't load Google sign-in. Check your connection and try again."
+        : 'Google sign-in failed to initialize. Please try again.');
+      setGoogleLoading(false);
+    }
+  }
+
   return (
     <div className="login-wrap">
       <div className="login-bg"></div>
@@ -2989,9 +3273,12 @@ function LoginScreen({ onLoggedIn }) {
 
           <div className="login-divider"><span className="rule"></span>OR<span className="rule"></span></div>
 
-          <button type="button" className="login-social" onClick={() => showSocialNote("Google")}>
-            <span>🔵</span> Continue with Google
-          </button>
+          <div id="google-btn" />
+          {!googleFallback && (
+            <button type="button" className="login-social" onClick={handleGoogleSignIn} disabled={googleLoading}>
+              <span>🔵</span> {googleLoading ? 'Signing in…' : 'Continue with Google'}
+            </button>
+          )}
           <button type="button" className="login-social" onClick={() => showSocialNote("Facebook")}>
             <span>🔷</span> Continue with Facebook
           </button>
@@ -3018,6 +3305,7 @@ function App() {
   // PWA Install states
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
   const [showIOSModal, setShowIOSModal] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
@@ -3139,35 +3427,17 @@ function App() {
     }
   }, []);
 
-  // PWA: Handle beforeinstallprompt (Android/Chrome/Edge)
+  // PWA: Handle install flow (beforeinstallprompt + modern browser detection)
+  // The beforeinstallprompt event is deprecated in Chrome 97+ (2022),
+  // but we keep it as a fallback. Modern Chrome shows its own A2HS prompt
+  // automatically. We show a proactive install button for supported browsers.
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      // Check if already installed
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-      const isIOSStandalone = window.navigator.standalone === true;
-      if (!isStandalone && !isIOSStandalone) {
-        setShowInstallBtn(true);
-      }
-    };
-
-    const handleAppInstalled = () => {
-      setShowInstallBtn(false);
-      setDeferredPrompt(null);
-      setIsInstalled(true);
-      console.log('[PWA] App installed');
-    };
-
-    // Check if already running as PWA
+    // Check if already running as PWA / installed
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
     const isIOSStandalone = window.navigator.standalone === true;
     if (isStandalone || isIOSStandalone) {
       setIsInstalled(true);
     }
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
 
     // iOS: Detect if we should show "Add to Home Screen" instruction
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -3180,6 +3450,30 @@ function App() {
       return () => clearTimeout(timer);
     }
 
+    // Listen for beforeinstallprompt (deprecated but still works in some browsers)
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+
+    const handleAppInstalled = () => {
+      setShowInstallBtn(false);
+      setDeferredPrompt(null);
+      setIsInstalled(true);
+      console.log('[PWA] App installed');
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    // Proactively show the install button for browsers that support it.
+    // For Chrome 97+, the browser shows its own A2HS prompt automatically,
+    // but we provide a button as a fallback for other supported browsers.
+    // We show the button if not already installed and not iOS standalone.
+    const shouldShowInstallBtn = !isInstalled && !isIOSStandalone;
+    setShowInstallBtn(shouldShowInstallBtn);
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
@@ -3187,17 +3481,70 @@ function App() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      console.log('[PWA] User accepted install');
-      setShowInstallBtn(false);
-      setIsInstalled(true);
-    } else {
-      console.log('[PWA] User dismissed install');
-    }
+    // Show processing state immediately
+    setShowInstallBtn(false);
+    setIsInstalled(false);
     setDeferredPrompt(null);
+
+    if (deferredPrompt) {
+      // Show a processing modal while the browser prompt is displayed
+      setShowInstallModal(true);
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      setShowInstallModal(false);
+
+      if (outcome === 'accepted') {
+        console.log('[PWA] User accepted install');
+        setShowInstallBtn(false);
+        setIsInstalled(true);
+        // Wait a moment then hide the install modal if showing
+        return;
+      } else {
+        console.log('[PWA] User dismissed install');
+      }
+      setDeferredPrompt(null);
+    } else {
+      // fallback: Chrome 97+ no longer fires beforeinstallprompt;
+      // show the native Chrome A2HS prompt steps
+      const isChrome = /Chrome/.test(navigator.userAgent) && !/Edge/.test(navigator.userAgent);
+      if (isChrome && !window.navigator.standalone) {
+        const proceed = window.confirm(
+          'Mahumbezi Installation\n\n' +
+          'Mahumbezi is a Progressive Web App. To install it:\n\n' +
+          '1. Tap the menu button (⋳) in Chrome\n' +
+          '2. Select "Add to Home Screen"\n' +
+          '3. Tap "Add" at the top right\n\n' +
+          'The app will then appear on your home screen and open automatically.'
+        );
+        if (proceed) {
+          // User confirmed - show them the steps
+          // The actual installation is completed in step 3 above
+          // We detect if they're already in standalone mode
+          const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+          const isIOSStandalone = window.navigator.standalone === true;
+          if (isStandalone || isIOSStandalone) {
+            setShowInstallBtn(false);
+            setIsInstalled(true);
+            console.log('[PWA] App installed - now running in standalone mode');
+          } else {
+            // Show a persistent reminder since they're not installed yet
+            setShowInstallModal(true);
+            setShowInstallBtn(false);
+            alert(
+              'Installation started.\n\n' +
+              'Please complete the steps above:\n' +
+              '1. Tap the menu button (⋳) in Chrome\n' +
+              '2. Select "Add to Home Screen"\n' +
+              '3. Tap "Add"\n\n' +
+              'Then refresh this page (or reopen the app) to see the install button again.'
+            );
+          }
+        }
+      } else if (!window.navigator.standalone) {
+        // Not Chrome or already installed
+        alert('PWA installation is not supported in this browser, or the app is already installed.');
+      }
+    }
   };
 
   const dismissIOSModal = () => {

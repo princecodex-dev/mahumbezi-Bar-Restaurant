@@ -49,7 +49,7 @@ Run the integration test suite (boots the app against a throwaway SQLite DB in
 `os.tmpdir()`, seeds it, and exercises the full HTTP surface):
 
 ```bash
-npm test                    # node --test, 26 checks
+npm test                    # node --test, 35 checks
 ```
 
 Open `http://localhost:4000` in a browser — you should see the login screen.
@@ -74,6 +74,10 @@ deployment:
   this value can mint valid login tokens, so keep it out of source control.
 - `DATABASE_PATH` — where the SQLite file lives. Defaults to
   `./data/mahumbezi.db`.
+- `GOOGLE_CLIENT_ID` — the OAuth web client ID from Google Cloud Console that
+  powers **Continue with Google** (see section 6a). Leave it empty and the
+  button explains that Google sign-in isn't configured yet; password login is
+  unaffected either way.
 
 `CORS_ORIGIN` only matters if you host the frontend somewhere *other* than
 this server (see section 5). If you're using the bundled `public/index.html`
@@ -165,7 +169,7 @@ All routes except `/api/auth/login` and `/api/auth/refresh` require
 
 | Resource | Routes |
 |---|---|
-| Auth | `POST /api/auth/login`, `POST /api/auth/refresh`, `PUT /api/auth/password` |
+| Auth | `POST /api/auth/login`, `POST /api/auth/refresh`, `PUT /api/auth/password`, `POST /api/auth/google`, `GET /api/auth/google/config`, `POST /api/auth/google/link` |
 | Menu items | `GET/POST /api/menu-items`, `PUT/DELETE /api/menu-items/:id` |
 | Tables | `GET/POST /api/tables`, `PUT/DELETE /api/tables/:id` |
 | Orders | `GET/POST /api/orders`, `PATCH /api/orders/:id/status` |
@@ -190,6 +194,33 @@ Auth details:
 Creating an order computes subtotal/tax/total **server-side** from the
 current VAT rate — never trust a client-sent total for money. Marking an
 order `Paid` requires a `method` (`Cash`, `Mobile Money`, or `Card`).
+
+### 6a. Continue with Google
+
+The login screen's **Continue with Google** button uses Google Identity
+Services (the `credential` / ID-token flow) — no client secret and no
+redirect URI are involved.
+
+- The browser calls `GET /api/auth/google/config` to learn the client ID, so
+  the ID is never hard-coded in `public/index.html`.
+- On click it runs Google's account chooser, then posts the returned
+  `credential` to `POST /api/auth/google`.
+- The server verifies it with Google's official `google-auth-library`
+  (signature, `iss`, `aud`, `exp`, verified email) **before** trusting
+  anything, then either signs in the existing user or creates one.
+
+Account rules:
+
+- Existing row matched by `users.google_id` → sign in, no duplicate created
+  (a partial unique index on `google_id` enforces this).
+- Google email matches a **password account** → the API returns
+  `409 EMAIL_EXISTS` and does **not** auto-link. The user must sign in with
+  their existing password, then `POST /api/auth/google/link` (requires a
+  valid bearer token) attaches the Google identity.
+- New Google account → created with role `Waiter` and an unguessable random
+  `password_hash`, so Google sign-in can never grant `Admin`.
+- `POST /api/auth/google/link` and the whole Google flow are rate-limited and
+  written to `activity_log` (`auth.google.*`) without ever logging tokens.
 
 ## 7. Analytics
 
